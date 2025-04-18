@@ -1,0 +1,5 @@
+# Ignore vscode crap
+.vscode/
+
+# Ignore the builds
+bin/
