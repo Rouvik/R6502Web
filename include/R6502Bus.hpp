@@ -6,9 +6,9 @@
 class R6502Bus
 {
 public:
-    R6502Mem memory{256};
+    R6502Mem memory;
 
-    R6502Bus() = default;
+    R6502Bus();
     ~R6502Bus() = default;
 
     uint8_t read(uint32_t addr);

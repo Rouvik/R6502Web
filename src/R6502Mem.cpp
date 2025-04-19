@@ -46,7 +46,7 @@ void R6502Mem::renderMemory(uint32_t sizeToRender)
     
     for (uint32_t i = 0; i < sizeToRender / R6502Mem::MEM_RANGE; i++)
     {
-        std::cout << std::setw(2) << std::hex << i * R6502Mem::MEM_RANGE << ": ";
+        std::cout << std::setw(3) << std::hex << i * R6502Mem::MEM_RANGE << ": ";
         for (uint32_t j = 0; j < R6502Mem::MEM_RANGE; j++)
         {
             std::cout << std::setw(2) << std::hex << static_cast<uint32_t>(memory[R6502Mem::MEM_RANGE * i + j]) << ' ';

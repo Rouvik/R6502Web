@@ -15,6 +15,7 @@ uint8_t R6502::reg_X = 0;
 uint8_t R6502::reg_Y = 0;
 uint8_t R6502::reg_Status = 0;
 uint16_t R6502::reg_Stack = 0x1FF;
+uint8_t R6502::instr = 0;
 uint8_t R6502::imm = 0;
 uint16_t R6502::addr = 0;
 bool R6502::accumulator = false;
@@ -314,7 +315,7 @@ void R6502::clock()
         return;
     }
 
-    uint8_t instr = bus.read(IP);
+    instr = bus.read(IP);
     Instruction_t instruction;
     try
     {
@@ -389,12 +390,31 @@ void R6502::ZPY()
 
 void R6502::IMP() {}    // implied, does nothing for now and lets the instruction decide the addressing stuff...
 
+void R6502::JIND()
+{
+    uint16_t ptr = bus.read(IP);
+    ptr |= bus.read(IP + 1) << 8;
+
+    uint16_t calcAddr = bus.read(ptr);
+
+    if ((ptr & 0xFF) == 0xFF)
+    {
+        calcAddr |= bus.read(ptr & 0xFF00) << 8;
+    }
+    else
+    {
+        calcAddr |= bus.read(ptr + 1) << 8;
+    }
+    
+    addr = calcAddr;
+    IP += 2;
+}
+
 void R6502::INY() {}
 void R6502::ABX() {}
 void R6502::ABY() {}
 void R6502::REL() {}
 void R6502::ZPI() {}
-void R6502::JIND() {}
 void R6502::ABIX() {}
 
 // instruction definitions
@@ -576,16 +596,7 @@ void R6502::INC()
 
 void R6502::JMP()
 {
-    uint16_t jmpLoc = bus.read(addr);      // read the lower bytes of jump
-    if (indirect && ((addr & 0xFF) == 0xFF)) // adjust for page boundary indirect jumps
-    {
-        addr &= 0xFF00;
-        addr--;
-        indirect = false;
-    }
-
-    uint8_t jmpHigh = bus.read(addr + 1) << 8; // read the upper address bytes of jump
-    IP = jmpLoc | jmpHigh;
+    IP = addr;
 }
 
 void R6502::JSR()

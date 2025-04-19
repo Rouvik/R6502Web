@@ -1,5 +1,7 @@
 #include <R6502Bus.hpp>
 
+R6502Bus::R6502Bus() : memory(512) {}
+
 uint8_t R6502Bus::read(uint32_t addr)
 {
     return memory.read(addr);

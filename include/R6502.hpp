@@ -29,6 +29,7 @@ public:
     // system variables
     static int ticks;
     static uint32_t IP;
+    static uint8_t instr;
     static uint8_t imm;
     static uint16_t addr;
     static bool accumulator;
