@@ -25,9 +25,24 @@ int main()
     // memory->memory[6] = 0xB4;
     // memory->memory[7] = 0x01;
 
-    memory->memory[0] = 0xA9;
-    memory->memory[1] = 0x32;
-    memory->memory[2] = 0x4A;
+    // memory->memory[0] = 0xA9;
+    // memory->memory[1] = 0x32;
+    // memory->memory[2] = 0x4A;
+
+    memory->memory[0] = 12;
+    memory->memory[1] = 0xA2;
+    memory->memory[2] = 0x0B;
+    memory->memory[3] = 0xA9;
+    memory->memory[4] = 0x32;
+    memory->memory[5] = 0x6D;
+    memory->memory[6] = 0x00;
+    memory->memory[7] = 0x00;
+    memory->memory[8] = 0x85;
+    memory->memory[9] = 0x00;
+    
+    memory->memory[12] = 15;
+
+    cpu.IP = 1;
 
     LOG(ProgramMemory, "Before start");
     memory->renderMemory();

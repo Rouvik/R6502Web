@@ -57,6 +57,8 @@ public:
     static uint8_t setStatus(StatusFlags flag, bool value = true);
     static uint8_t toggleStatus(StatusFlags flag);
 
+    static bool getStatus(StatusFlags flag);
+
     // stack manupulation
     static void stack_Push(uint8_t data);
     static uint8_t stack_Pop();

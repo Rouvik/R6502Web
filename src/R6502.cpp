@@ -300,6 +300,11 @@ uint8_t R6502::toggleStatus(StatusFlags flag)
     return R6502::reg_Status;
 }
 
+bool R6502::getStatus(StatusFlags flag)
+{
+    return (reg_Status & flag) == flag;
+}
+
 void R6502::clock()
 {
     // waste ticks
@@ -347,6 +352,13 @@ void R6502::ACC()
     accumulator = true;
 }
 
+void R6502::ABS()
+{
+    addr = bus.read(IP);
+    addr |= bus.read(IP + 1) << 8;
+    IP += 2;    // point to next instruction
+}
+
 void R6502::IMM()
 {
     addr = IP;
@@ -365,17 +377,60 @@ void R6502::ZPX()
 {
     addr = bus.read(IP);
     IP++;
-    addr += reg_X;
+    addr = (addr + reg_X) & 0xFF;   // make sure its zero paged
 }
 
 void R6502::ZPY()
 {
     addr = bus.read(IP);
     IP++;
-    addr += reg_Y;
+    addr = (addr + reg_Y) & 0xFF;   // make sure its zero paged
 }
 
+void R6502::IMP() {}    // implied, does nothing for now and lets the instruction decide the addressing stuff...
+
+void R6502::INY() {}
+void R6502::ABX() {}
+void R6502::ABY() {}
+void R6502::REL() {}
+void R6502::ZPI() {}
+void R6502::JIND() {}
+void R6502::ABIX() {}
+
 // instruction definitions
+void R6502::ADC()
+{
+    uint8_t data = bus.read(addr);
+    uint16_t sum = reg_Acc + data + getStatus(StatusFlags::C);  // sum = Acc + fetched_data + Carry bit(1/0)
+    
+    // Overflow if: Accumulator and fetched_data have SAME SIGN but Accumulator and result have DIFFERENT SIGN
+    setStatus(StatusFlags::V, (~(reg_Acc ^ data) & (reg_Acc ^ sum)) & 0x80);
+
+    reg_Acc = static_cast<uint8_t>(sum & 0xFF);   // make sure its 8-bit to fit within the Accumulator
+
+    setStatus(StatusFlags::C, sum > 0xFF);
+    setStatus(StatusFlags::Z, reg_Acc == 0);
+    setStatus(StatusFlags::N, reg_Acc & 0x80);
+}
+
+void R6502::SBC()
+{
+    uint8_t data = bus.read(addr);
+
+    // in 6502 subtraction is performed by 1's complement of data and then adding to Accumulator, then adding carry as in a borrow scheme
+    // the calculation actually extends to => Acc = Acc - data - (1 - Carry) => Acc = Acc + (~data) + Carry
+    uint16_t sum = reg_Acc + (~data) + getStatus(StatusFlags::C);  // sum = Acc + (~fetched_data) + Carry bit(1/0)
+    
+    // Overflow if: inverse of Accumulator and fetched_data have DIFFERENT SIGN respectively but Accumulator and result have DIFFERENT SIGN
+    setStatus(StatusFlags::V, ((~reg_Acc ^ data) & (reg_Acc ^ sum)) & 0x80);
+    setStatus(StatusFlags::C, reg_Acc >= data); // no borrow if Accumulator is greater than operand (obviously)
+    
+    reg_Acc = static_cast<uint8_t>(sum & 0xFF);   // make sure its 8-bit to fit within the Accumulator
+    
+    setStatus(StatusFlags::Z, reg_Acc == 0);
+    setStatus(StatusFlags::N, reg_Acc & 0x80);
+}
+
 void R6502::LDA()
 {
     reg_Acc = bus.read(addr);
@@ -536,19 +591,13 @@ void R6502::JMP()
 void R6502::JSR()
 {
     uint16_t addrToPush = IP - 1;
-    stack_Push(addrToPush & 0x00FF); // first push the lower byte
-    stack_Push(addrToPush & 0xFF00); // then push the upper byte (little endian)
+    stack_Push(static_cast<uint8_t>(addrToPush & 0xFF00)); // first push the upper byte
+    stack_Push(static_cast<uint8_t>(addrToPush & 0x00FF)); // then push the lower byte (little endian)
     IP = bus.read(addr);
 }
 
 void R6502::LSR()
 {
-    if (zeroIndirect)
-    {
-        addr &= 0xFF; // make sure the calculated address doesnot escape the 0xFF zero page boundary
-        zeroIndirect = false;
-    }
-
     uint8_t data = accumulator ? reg_Acc : bus.read(addr);  // handle accumulator cases
     
     setStatus(StatusFlags::N, false); // always clear negative
@@ -564,75 +613,190 @@ void R6502::LSR()
     }
 }
 
-void R6502::IMP() {}
-void R6502::INY() {}
-void R6502::ABS() {}
-void R6502::ABX() {}
-void R6502::ABY() {}
-void R6502::REL() {}
-void R6502::ZPI() {}
-void R6502::JIND() {}
-void R6502::ABIX() {}
+void R6502::NOP()
+{
+    // do nothing
+}
 
+void R6502::ORA()
+{
+    uint8_t data = bus.read(addr);
+    reg_Acc |= data;
+    setStatus(StatusFlags::N, reg_Acc & 0x80);
+    setStatus(StatusFlags::Z, reg_Acc == 0);
+}
+
+void R6502::TAX()
+{
+    reg_X = reg_Acc;
+}
+
+void R6502::TXA()
+{
+    reg_Acc = reg_X;
+}
+
+void R6502::DEX()
+{
+    reg_X--;
+}
+
+void R6502::INCX()
+{
+    reg_X++;
+}
+
+void R6502::TAY()
+{
+    reg_Y = reg_Acc;
+}
+
+void R6502::TYA()
+{
+    reg_Acc = reg_Y;
+}
+
+void R6502::DEY()
+{
+    reg_Y--;
+}
+
+void R6502::INCY()
+{
+    reg_Y++;
+}
+
+void R6502::ROL()
+{
+    uint8_t data = accumulator ? reg_Acc : bus.read(addr);
+    uint8_t new_carry = data & 0x80;                            // preserve the old carry
+    data  = (data << 1) | getStatus(StatusFlags::C);        // add in the bit from carry
+    setStatus(StatusFlags::C, new_carry);           // set the new carry bit back
+    setStatus(StatusFlags::Z, data == 0);
+    setStatus(StatusFlags::N, data & 0x80);
+
+    if (accumulator)
+    {
+        reg_Acc = data;
+        accumulator = false;
+    }
+    else
+    {
+        bus.write(addr, data);
+    }
+}
+
+void R6502::ROR()
+{
+    uint8_t data = accumulator ? reg_Acc : bus.read(addr);
+    uint8_t new_carry = data & 0x1;                                 // preserve the old carry
+    data  = (data >> 1) | (getStatus(StatusFlags::C) << 7);   // add in the bit from carry
+    setStatus(StatusFlags::C, new_carry);              // set the new carry bit back
+    setStatus(StatusFlags::Z, data == 0);
+    setStatus(StatusFlags::N, data & 0x80);
+
+    if (accumulator)
+    {
+        reg_Acc = data;
+        accumulator = false;
+    }
+    else
+    {
+        bus.write(addr, data);
+    }
+}
+
+void R6502::RTS()
+{
+    uint16_t retAddr = stack_Pop();  // pops the lower byte first
+    retAddr |= stack_Pop() << 8;    // pops the next higher bytes
+    retAddr++;
+    IP = retAddr;
+}
+
+void R6502::STA()
+{
+    bus.write(addr, reg_Acc);
+}
+
+void R6502::TXS()
+{
+    reg_Stack = static_cast<uint16_t>(reg_X | 0x100);  // reg_X can only store values 0x00 - 0xFF and so does the stack logically,
+                                                       // but we know the stack extends from 0x100 - 0x1FF so we OR with 0x100 to extend the reg_X value to correct page
+}
+
+void R6502::TSX()
+{
+    reg_X = reg_Stack & 0xFF;   // again make sure the stack address is properly extracted to register X
+    setStatus(StatusFlags::Z, reg_X == 0);
+    setStatus(StatusFlags::N, reg_X & 0x80);
+}
+
+void R6502::PHA()
+{
+    stack_Push(reg_Acc);
+}
+
+void R6502::PLA()
+{
+    reg_Acc = stack_Pop();
+    setStatus(StatusFlags::Z, reg_Acc == 0);
+    setStatus(StatusFlags::N, reg_Acc & 0x80);
+}
+
+void R6502::PHP()
+{
+    uint8_t pushStatus = reg_Status;
+    pushStatus |= static_cast<StatusFlags>(StatusFlags::U | StatusFlags::B);    // set the Unused and break flag in the pushed version of stack
+    stack_Push(pushStatus);
+}
+
+void R6502::PLP()
+{
+    reg_Status = stack_Pop();
+}
+
+// unimplemented WDC extended instructions
 void R6502::UNIMPL(void) {}
 void R6502::BRK(void) {}
-void R6502::ORA(void) {}
 void R6502::TSB(void) {}
 void R6502::RMB0(void) {}
-void R6502::PHP(void) {}
 void R6502::BBR0(void) {}
 void R6502::BPL(void) {}
 void R6502::TRB(void) {}
 void R6502::RMB1(void) {}
 void R6502::BBR1(void) {}
-void R6502::ROL(void) {}
 void R6502::RMB2(void) {}
-void R6502::PLP(void) {}
 void R6502::BBR2(void) {}
 void R6502::BMI(void) {}
 void R6502::RMB3(void) {}
 void R6502::BBR3(void) {}
 void R6502::RTI(void) {}
 void R6502::RMB4(void) {}
-void R6502::PHA(void) {}
 void R6502::BBR4(void) {}
 void R6502::BVC(void) {}
 void R6502::RMB5(void) {}
 void R6502::PHY(void) {}
 void R6502::BBR5(void) {}
-void R6502::RTS(void) {}
-void R6502::ADC(void) {}
 void R6502::STZ(void) {}
-void R6502::ROR(void) {}
 void R6502::RMB6(void) {}
-void R6502::PLA(void) {}
 void R6502::BBR6(void) {}
 void R6502::BVS(void) {}
 void R6502::RMB7(void) {}
 void R6502::PLY(void) {}
 void R6502::BBR7(void) {}
 void R6502::BRA(void) {}
-void R6502::STA(void) {}
 void R6502::SMB0(void) {}
-void R6502::DEY(void) {}
-void R6502::TXA(void) {}
 void R6502::BBS0(void) {}
 void R6502::BCC(void) {}
 void R6502::SMB1(void) {}
-void R6502::TYA(void) {}
-void R6502::TXS(void) {}
 void R6502::BBS1(void) {}
 void R6502::SMB2(void) {}
-void R6502::TAY(void) {}
-void R6502::TAX(void) {}
 void R6502::BBS2(void) {}
 void R6502::BCS(void) {}
 void R6502::SMB3(void) {}
-void R6502::TSX(void) {}
 void R6502::BBS3(void) {}
 void R6502::SMB4(void) {}
-void R6502::INCY(void) {}
-void R6502::DEX(void) {}
 void R6502::WAI(void) {}
 void R6502::BBS4(void) {}
 void R6502::BNE(void) {}
@@ -640,10 +804,7 @@ void R6502::SMB5(void) {}
 void R6502::PHX(void) {}
 void R6502::STP(void) {}
 void R6502::BBS5(void) {}
-void R6502::SBC(void) {}
 void R6502::SMB6(void) {}
-void R6502::INCX(void) {}
-void R6502::NOP(void) {}
 void R6502::BBS6(void) {}
 void R6502::BEQ(void) {}
 void R6502::SMB7(void) {}
