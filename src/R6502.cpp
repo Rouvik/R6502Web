@@ -342,8 +342,8 @@ void R6502::stack_Push(uint8_t data)
 
 uint8_t R6502::stack_Pop()
 {
-    uint8_t data = bus.read(reg_Stack);
     reg_Stack++;
+    uint8_t data = bus.read(reg_Stack);
     return data;
 }
 
@@ -751,6 +751,7 @@ void R6502::PHA()
 void R6502::PLA()
 {
     reg_Acc = stack_Pop();
+    LOG(PLA_DEBUG, "Pulled: " << std::hex << (uint32_t)reg_Acc);
     setStatus(StatusFlags::Z, reg_Acc == 0);
     setStatus(StatusFlags::N, reg_Acc & 0x80);
 }

@@ -1,6 +1,7 @@
 #include <iostream>
-#include <thread>
 #include <bitset>
+#include <string>
+#include <fstream>
 
 #include <helper.hpp>
 
@@ -8,47 +9,74 @@
 #include <R6502Bus.hpp>
 #include <R6502.hpp>
 
+void loadHexProgram(std::string fileName, R6502Mem *memory, uint32_t writeOffset)
+{
+    if (memory == nullptr)
+    {
+        ERROR(loadHexProgram, "FATAL: memory cannot be null");
+        exit(1);
+    }
+
+    if (writeOffset > memory->size)
+    {
+        ERROR(loadHexProgram, "Write offset cannot be larger than memory size: " << memory->size << " offset: " << writeOffset);
+        exit(1);
+    }
+    
+    std::ifstream in(fileName);
+    if (!in)
+    {
+        ERROR(loadHexProgram, "Failed to load file: " << fileName);
+        exit(1);
+    }
+
+    while (!in.eof())
+    {
+        std::string byte;
+        in >> byte;
+        memory->memory[writeOffset++] = std::stoi(byte, 0, 16);
+    }
+
+    in.close();
+}
+
+void loadBinProgram(std::string fileName, R6502Mem *memory, uint32_t writeOffset)
+{
+    if (memory == nullptr)
+    {
+        ERROR(loadBinProgram, "FATAL: memory cannot be null");
+        exit(1);
+    }
+
+    if (writeOffset > memory->size)
+    {
+        ERROR(loadBinProgram, "Write offset cannot be larger than memory size: " << memory->size << " offset: " << writeOffset);
+        exit(1);
+    }
+    
+    std::ifstream in(fileName, std::ios::binary);
+    if(!in)
+    {
+        ERROR(loadBinProgram, "Failed to load file: " << fileName);
+        exit(1);
+    }
+
+    while (!in.eof())
+    {
+        in >> memory->memory[writeOffset];
+        writeOffset++;
+    }
+
+    in.close();
+}
+
 int main()
 {    
     R6502 cpu{};
 
     R6502Mem *memory = &R6502::bus.memory;
-
-    // load the simple program
     
-    // memory->memory[0] = 12;
-    // memory->memory[1] = 0xA9;
-    // memory->memory[2] = 0x32;
-    // memory->memory[3] = 0x6D;
-    // memory->memory[4] = 0x00;
-    // memory->memory[5] = 0x00;
-    // memory->memory[6] = 0x85;
-    // memory->memory[7] = 0x00;
-    // R6502::IP = 1;
-    
-    // memory->memory[0] = 0xA2;
-    // memory->memory[1] = 0x00;
-    // memory->memory[2] = 0xA0;
-    // memory->memory[3] = 0x32;
-    // memory->memory[4] = 0x94;
-    // memory->memory[5] = 0x20;
-    // memory->memory[6] = 0xE8;
-    // memory->memory[7] = 0x4C;
-    // memory->memory[8] = 0x04;
-    // memory->memory[9] = 0x00;
-
-    memory->memory[0] = 0xA2;
-    memory->memory[1] = 0x00;
-    memory->memory[2] = 0xA0;
-    memory->memory[3] = 0x32;
-    memory->memory[4] = 0x94;
-    memory->memory[5] = 0x20;
-    memory->memory[6] = 0xE8;
-    memory->memory[7] = 0x6C;
-    memory->memory[8] = 0x0A;
-    memory->memory[9] = 0x00;
-    
-    memory->memory[10] = 0x04;
+    loadHexProgram("./code.hex", memory, 0);
 
     LOG(ProgramMemory, "Before start");
     memory->renderMemory();
