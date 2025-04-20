@@ -410,10 +410,16 @@ void R6502::JIND()
     IP += 2;
 }
 
+void R6502::REL()
+{
+    uint8_t rel = bus.read(IP);
+    IP++;
+    addr = static_cast<uint16_t>(IP + rel);
+}
+
 void R6502::INY() {}
 void R6502::ABX() {}
 void R6502::ABY() {}
-void R6502::REL() {}
 void R6502::ZPI() {}
 void R6502::ABIX() {}
 
@@ -505,6 +511,70 @@ void R6502::BIT()
     uint8_t data = bus.read(addr);
     reg_Status |= data & 0xC0; // set N and V flags to bit 7 and 6
     setStatus(StatusFlags::Z, (data & reg_Acc) == 0);
+}
+
+void R6502::BPL()
+{
+    if (!getStatus(StatusFlags::N))
+    {
+        IP = addr;
+    }
+}
+
+void R6502::BMI()
+{
+    if (getStatus(StatusFlags::N))
+    {
+        IP = addr;
+    }
+}
+
+void R6502::BVC()
+{
+    if (!getStatus(StatusFlags::V))
+    {
+        IP = addr;
+    }
+}
+
+void R6502::BVS()
+{
+    if (getStatus(StatusFlags::V))
+    {
+        IP = addr;
+    }
+}
+
+void R6502::BCC()
+{
+    if (!getStatus(StatusFlags::C))
+    {
+        IP = addr;
+    }
+}
+
+void R6502::BCS()
+{
+    if (getStatus(StatusFlags::C))
+    {
+        IP = addr;
+    }
+}
+
+void R6502::BNE()
+{
+    if (!getStatus(StatusFlags::Z))
+    {
+        IP = addr;
+    }
+}
+
+void R6502::BEQ()
+{
+    if (getStatus(StatusFlags::Z))
+    {
+        IP = addr;
+    }
 }
 
 void R6502::CMP()
@@ -774,51 +844,43 @@ void R6502::BRK(void) {}
 void R6502::TSB(void) {}
 void R6502::RMB0(void) {}
 void R6502::BBR0(void) {}
-void R6502::BPL(void) {}
 void R6502::TRB(void) {}
 void R6502::RMB1(void) {}
 void R6502::BBR1(void) {}
 void R6502::RMB2(void) {}
 void R6502::BBR2(void) {}
-void R6502::BMI(void) {}
 void R6502::RMB3(void) {}
 void R6502::BBR3(void) {}
 void R6502::RTI(void) {}
 void R6502::RMB4(void) {}
 void R6502::BBR4(void) {}
-void R6502::BVC(void) {}
 void R6502::RMB5(void) {}
 void R6502::PHY(void) {}
 void R6502::BBR5(void) {}
 void R6502::STZ(void) {}
 void R6502::RMB6(void) {}
 void R6502::BBR6(void) {}
-void R6502::BVS(void) {}
 void R6502::RMB7(void) {}
 void R6502::PLY(void) {}
 void R6502::BBR7(void) {}
 void R6502::BRA(void) {}
 void R6502::SMB0(void) {}
 void R6502::BBS0(void) {}
-void R6502::BCC(void) {}
 void R6502::SMB1(void) {}
 void R6502::BBS1(void) {}
 void R6502::SMB2(void) {}
 void R6502::BBS2(void) {}
-void R6502::BCS(void) {}
 void R6502::SMB3(void) {}
 void R6502::BBS3(void) {}
 void R6502::SMB4(void) {}
 void R6502::WAI(void) {}
 void R6502::BBS4(void) {}
-void R6502::BNE(void) {}
 void R6502::SMB5(void) {}
 void R6502::PHX(void) {}
 void R6502::STP(void) {}
 void R6502::BBS5(void) {}
 void R6502::SMB6(void) {}
 void R6502::BBS6(void) {}
-void R6502::BEQ(void) {}
 void R6502::SMB7(void) {}
 void R6502::PLX(void) {}
 void R6502::BBS7(void) {}
