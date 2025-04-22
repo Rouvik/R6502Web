@@ -372,7 +372,7 @@ void R6502::ABS()
 {
     addr = bus.read(IP);
     addr |= bus.read(IP + 1) << 8;
-    IP += 2;    // point to next instruction
+    IP += 2; // point to next instruction
 }
 
 void R6502::IMM()
@@ -391,17 +391,17 @@ void R6502::ZPX()
 {
     addr = bus.read(IP);
     IP++;
-    addr = (addr + reg_X) & 0xFF;   // make sure its zero paged
+    addr = (addr + reg_X) & 0xFF; // make sure its zero paged
 }
 
 void R6502::ZPY()
 {
     addr = bus.read(IP);
     IP++;
-    addr = (addr + reg_Y) & 0xFF;   // make sure its zero paged
+    addr = (addr + reg_Y) & 0xFF; // make sure its zero paged
 }
 
-void R6502::IMP() {}    // implied, does nothing for now and lets the instruction decide the addressing stuff...
+void R6502::IMP() {} // implied, does nothing for now and lets the instruction decide the addressing stuff...
 
 void R6502::JIND()
 {
@@ -418,7 +418,7 @@ void R6502::JIND()
     {
         calcAddr |= bus.read(ptr + 1) << 8;
     }
-    
+
     addr = calcAddr;
     IP += 2;
 }
@@ -471,16 +471,43 @@ void R6502::ABIX()
     LOG(AddressingMode_ABIX, "\"Absolute Indirect Indexed with X\" addressing mode is not supported yet thus the current instruction is probably broken, please use a NMOS 6502 compatible program");
 }
 
+void R6502::NMI()
+{
+    stack_Push((IP >> 8) & 0xFF);     // push the high bits of the instruction
+    stack_Push(IP & 0xFF);            // push the lower bits of the instruction
+    setStatus(StatusFlags::U, true);  // set the unused
+    setStatus(StatusFlags::B, false); // unset the BRK flag since it's NMI
+    stack_Push(reg_Status);
+    setStatus(StatusFlags::I, true); // disable further interrupts
+    IP = bus.read(0xFFFA) | (bus.read(0xFFFB) << 8);
+}
+
+void R6502::IRQ()
+{
+    if (getStatus(StatusFlags::I)) // ignore if interrupts masked
+    {
+        return;
+    }
+
+    stack_Push((IP >> 8) & 0xFF);     // first push the high address
+    stack_Push(IP & 0xFF);            // then push the lower address
+    setStatus(StatusFlags::U, true);  // set the unused
+    setStatus(StatusFlags::B, false); // dont set BRK since it is not a BRK interrupt call (hardware interrupt)
+    stack_Push(reg_Status);
+    setStatus(StatusFlags::I, true); // disable further interrupts
+    IP = bus.read(0xFFFE) | (bus.read(0xFFFF) << 8);
+}
+
 // instruction definitions
 void R6502::ADC()
 {
     uint8_t data = bus.read(addr);
-    uint16_t sum = reg_Acc + data + getStatus(StatusFlags::C);  // sum = Acc + fetched_data + Carry bit(1/0)
-    
+    uint16_t sum = reg_Acc + data + getStatus(StatusFlags::C); // sum = Acc + fetched_data + Carry bit(1/0)
+
     // Overflow if: Accumulator and fetched_data have SAME SIGN but Accumulator and result have DIFFERENT SIGN
     setStatus(StatusFlags::V, (~(reg_Acc ^ data) & (reg_Acc ^ sum)) & 0x80);
 
-    reg_Acc = static_cast<uint8_t>(sum & 0xFF);   // make sure its 8-bit to fit within the Accumulator
+    reg_Acc = static_cast<uint8_t>(sum & 0xFF); // make sure its 8-bit to fit within the Accumulator
 
     setStatus(StatusFlags::C, sum > 0xFF);
     setStatus(StatusFlags::Z, reg_Acc == 0);
@@ -493,14 +520,14 @@ void R6502::SBC()
 
     // in 6502 subtraction is performed by 1's complement of data and then adding to Accumulator, then adding carry as in a borrow scheme
     // the calculation actually extends to => Acc = Acc - data - (1 - Carry) => Acc = Acc + (~data) + Carry
-    uint16_t sum = reg_Acc + (~data) + getStatus(StatusFlags::C);  // sum = Acc + (~fetched_data) + Carry bit(1/0)
-    
+    uint16_t sum = reg_Acc + (~data) + getStatus(StatusFlags::C); // sum = Acc + (~fetched_data) + Carry bit(1/0)
+
     // Overflow if: inverse of Accumulator and fetched_data have DIFFERENT SIGN respectively but Accumulator and result have DIFFERENT SIGN
     setStatus(StatusFlags::V, ((~reg_Acc ^ data) & (reg_Acc ^ sum)) & 0x80);
     setStatus(StatusFlags::C, reg_Acc >= data); // no borrow if Accumulator is greater than operand (obviously)
-    
-    reg_Acc = static_cast<uint8_t>(sum & 0xFF);   // make sure its 8-bit to fit within the Accumulator
-    
+
+    reg_Acc = static_cast<uint8_t>(sum & 0xFF); // make sure its 8-bit to fit within the Accumulator
+
     setStatus(StatusFlags::Z, reg_Acc == 0);
     setStatus(StatusFlags::N, reg_Acc & 0x80);
 }
@@ -722,21 +749,21 @@ void R6502::JSR()
     uint16_t addrToPush = IP - 1;
     LOG(DEBUG, addrToPush);
     stack_Push(static_cast<uint8_t>((addrToPush & 0xFF00) >> 8)); // first push the upper byte
-    stack_Push(static_cast<uint8_t>(addrToPush & 0x00FF)); // then push the lower byte (little endian)
+    stack_Push(static_cast<uint8_t>(addrToPush & 0x00FF));        // then push the lower byte (little endian)
     IP = addr;
 }
 
 void R6502::LSR()
 {
-    uint8_t data = accumulator ? reg_Acc : bus.read(addr);  // handle accumulator cases
-    
+    uint8_t data = accumulator ? reg_Acc : bus.read(addr); // handle accumulator cases
+
     setStatus(StatusFlags::N, false); // always clear negative
     setStatus(StatusFlags::C, data & 0x1);
-    
+
     data >>= 1;
     data &= 0x7F; // make sure the 7th bit is zero
 
-    if (accumulator)    // handle accumulator case
+    if (accumulator) // handle accumulator case
     {
         reg_Acc = data;
         accumulator = false;
@@ -799,8 +826,8 @@ void R6502::INCY()
 void R6502::ROL()
 {
     uint8_t data = accumulator ? reg_Acc : bus.read(addr);
-    uint8_t new_carry = data & 0x80;                            // preserve the old carry
-    data  = (data << 1) | getStatus(StatusFlags::C);        // add in the bit from carry
+    uint8_t new_carry = data & 0x80;                // preserve the old carry
+    data = (data << 1) | getStatus(StatusFlags::C); // add in the bit from carry
     setStatus(StatusFlags::C, new_carry);           // set the new carry bit back
     setStatus(StatusFlags::Z, data == 0);
     setStatus(StatusFlags::N, data & 0x80);
@@ -819,9 +846,9 @@ void R6502::ROL()
 void R6502::ROR()
 {
     uint8_t data = accumulator ? reg_Acc : bus.read(addr);
-    uint8_t new_carry = data & 0x1;                                 // preserve the old carry
-    data  = (data >> 1) | (getStatus(StatusFlags::C) << 7);   // add in the bit from carry
-    setStatus(StatusFlags::C, new_carry);              // set the new carry bit back
+    uint8_t new_carry = data & 0x1;                        // preserve the old carry
+    data = (data >> 1) | (getStatus(StatusFlags::C) << 7); // add in the bit from carry
+    setStatus(StatusFlags::C, new_carry);                  // set the new carry bit back
     setStatus(StatusFlags::Z, data == 0);
     setStatus(StatusFlags::N, data & 0x80);
 
@@ -838,7 +865,7 @@ void R6502::ROR()
 
 void R6502::RTS()
 {
-    uint16_t retAddr = stack_Pop();  // pops the lower byte first
+    uint16_t retAddr = stack_Pop(); // pops the lower byte first
     retAddr |= stack_Pop() << 8;    // pops the next higher bytes
     retAddr++;
     IP = retAddr;
@@ -851,13 +878,13 @@ void R6502::STA()
 
 void R6502::TXS()
 {
-    reg_Stack = static_cast<uint16_t>(reg_X | 0x100);  // reg_X can only store values 0x00 - 0xFF and so does the stack logically,
-                                                       // but we know the stack extends from 0x100 - 0x1FF so we OR with 0x100 to extend the reg_X value to correct page
+    reg_Stack = static_cast<uint16_t>(reg_X | 0x100); // reg_X can only store values 0x00 - 0xFF and so does the stack logically,
+                                                      // but we know the stack extends from 0x100 - 0x1FF so we OR with 0x100 to extend the reg_X value to correct page
 }
 
 void R6502::TSX()
 {
-    reg_X = reg_Stack & 0xFF;   // again make sure the stack address is properly extracted to register X
+    reg_X = reg_Stack & 0xFF; // again make sure the stack address is properly extracted to register X
     setStatus(StatusFlags::Z, reg_X == 0);
     setStatus(StatusFlags::N, reg_X & 0x80);
 }
@@ -878,7 +905,7 @@ void R6502::PLA()
 void R6502::PHP()
 {
     uint8_t pushStatus = reg_Status;
-    pushStatus |= static_cast<StatusFlags>(StatusFlags::U | StatusFlags::B);    // set the Unused and break flag in the pushed version of stack
+    pushStatus |= static_cast<StatusFlags>(StatusFlags::U | StatusFlags::B); // set the Unused and break flag in the pushed version of stack
     stack_Push(pushStatus);
 }
 
@@ -887,9 +914,19 @@ void R6502::PLP()
     reg_Status = stack_Pop();
 }
 
+void R6502::BRK(void)
+{
+    IP++;
+    stack_Push((IP >> 8) & 0xFF);   // push higher bits of address
+    stack_Push(IP & 0xFF);          // then push the lower address bits
+    setStatus(static_cast<StatusFlags>(StatusFlags::B | StatusFlags::U), true); // set both the BRK and unused flags since this is a BRK instruction
+    stack_Push(reg_Status);
+    setStatus(StatusFlags::I, true);    // disable interrupts
+    IP = bus.read(0xFFFE) | (bus.read(0xFFFF) << 8);
+}
+
 // unimplemented WDC extended instructions
 void R6502::UNIMPL(void) {} // this is an instruction completely unimplemented and probably does something wrong to the CPU, so we instead do nothing in the emulator
-void R6502::BRK(void) {}    // also this is kinda useless so we ignore and do nothing for this one
 void R6502::TSB(void) {}
 void R6502::RMB0(void) {}
 void R6502::BBR0(void) {}

@@ -66,6 +66,12 @@ public:
     static void stack_Push(uint8_t data);
     static uint8_t stack_Pop();
 
+    static void clock();
+
+    // interrupts
+    static void NMI();
+    static void IRQ();
+
     // addressing modes
     static void ACC();
     static void IMP();
@@ -83,6 +89,7 @@ public:
     static void JIND();
     static void ABIX();
 
+    // instructions
     static void UNIMPL(void);
     static void STX(void);
     static void LDX(void);
@@ -182,8 +189,6 @@ public:
     static void SED(void);
     static void PLX(void);
     static void BBS7(void);           
-
-    static void clock();
 };
 
 #endif // INCLUDED_R6502_HPP
