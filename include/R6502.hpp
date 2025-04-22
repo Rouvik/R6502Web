@@ -6,6 +6,8 @@
 #include <string>
 #include <cstdint>
 
+#define ENABLE_STACK_CHECKS // enables a check for each stack operation for checking stack overflow and underflows in the system, only logs a visual error and doesnt crash the system however
+
 typedef struct Instruction
 {
     std::string op;

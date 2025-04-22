@@ -66,7 +66,7 @@ std::vector<Instruction_t> R6502::Instructions =
         (Instruction_t){"RMB2", R6502::ZP0, R6502::RMB2, 0},
         (Instruction_t){"PLP", R6502::IMP, R6502::PLP, 0},
         (Instruction_t){"AND", R6502::IMM, R6502::AND, 0},
-        (Instruction_t){"ROL", R6502::IMP, R6502::ROL, 0},
+        (Instruction_t){"ROL", R6502::ACC, R6502::ROL, 0},
         (Instruction_t){"UNIMPL", R6502::IMP, R6502::UNIMPL, 0},
         (Instruction_t){"BIT", R6502::ABS, R6502::BIT, 0},
         (Instruction_t){"AND", R6502::ABS, R6502::AND, 0},
@@ -130,7 +130,7 @@ std::vector<Instruction_t> R6502::Instructions =
         (Instruction_t){"RMB6", R6502::ZP0, R6502::RMB6, 0},
         (Instruction_t){"PLA", R6502::IMP, R6502::PLA, 0},
         (Instruction_t){"ADC", R6502::IMM, R6502::ADC, 0},
-        (Instruction_t){"ROR", R6502::IMP, R6502::ROR, 0},
+        (Instruction_t){"ROR", R6502::ACC, R6502::ROR, 0},
         (Instruction_t){"UNIMPL", R6502::IMP, R6502::UNIMPL, 0},
         (Instruction_t){"JMP", R6502::JIND, R6502::JMP, 0},
         (Instruction_t){"ADC", R6502::ABS, R6502::ADC, 0},
@@ -338,11 +338,26 @@ void R6502::stack_Push(uint8_t data)
 {
     bus.write(reg_Stack, data);
     reg_Stack--;
+
+#ifdef ENABLE_STACK_CHECKS
+    if (reg_Stack < 0x100)
+    {
+        ERROR(STACK_ERROR, "Stack overflow, overwriting to zero page, program may be in unstable state");
+    }
+#endif
 }
 
 uint8_t R6502::stack_Pop()
 {
     reg_Stack++;
+
+#ifdef ENABLE_STACK_CHECKS
+    if (reg_Stack > 0x1FF)
+    {
+        ERROR(STACK_ERROR, "Stack popped out of bounds, program is in an undefined state");
+    }
+#endif
+
     uint8_t data = bus.read(reg_Stack);
     return data;
 }
@@ -371,8 +386,6 @@ void R6502::ZP0()
     addr = bus.read(IP);
     IP++;
 }
-
-void R6502::INX() {}
 
 void R6502::ZPX()
 {
@@ -417,11 +430,46 @@ void R6502::REL()
     addr = static_cast<uint16_t>(IP + rel);
 }
 
-void R6502::INY() {}
-void R6502::ABX() {}
-void R6502::ABY() {}
-void R6502::ZPI() {}
-void R6502::ABIX() {}
+void R6502::INX()
+{
+    uint8_t base = bus.read(IP);
+    IP++;
+    uint8_t lo = bus.read((base + reg_X) & 0xFF);
+    uint8_t hi = bus.read((base + reg_X + 1) & 0xFF);
+    addr = (hi << 8) | lo;
+}
+
+void R6502::INY()
+{
+    uint8_t base = bus.read(IP);
+    IP++;
+    uint16_t ptr = bus.read(base) | (bus.read((base + 1) & 0xFF) << 8);
+    addr = ptr + reg_Y;
+}
+
+void R6502::ABX()
+{
+    uint16_t ptr = bus.read(IP) | (bus.read(IP + 1) << 8);
+    IP += 2;
+    addr = ptr + reg_X;
+}
+
+void R6502::ABY()
+{
+    uint16_t ptr = bus.read(IP) | (bus.read(IP + 1) << 8);
+    IP += 2;
+    addr = ptr + reg_Y;
+}
+
+void R6502::ZPI()
+{
+    LOG(AddressingMode_ZPI, "\"Zero page indirect\" addressing mode is not supported yet thus the current instruction is probably broken, please use a NMOS 6502 compatible program");
+}
+
+void R6502::ABIX()
+{
+    LOG(AddressingMode_ABIX, "\"Absolute Indirect Indexed with X\" addressing mode is not supported yet thus the current instruction is probably broken, please use a NMOS 6502 compatible program");
+}
 
 // instruction definitions
 void R6502::ADC()
@@ -672,9 +720,10 @@ void R6502::JMP()
 void R6502::JSR()
 {
     uint16_t addrToPush = IP - 1;
-    stack_Push(static_cast<uint8_t>(addrToPush & 0xFF00)); // first push the upper byte
+    LOG(DEBUG, addrToPush);
+    stack_Push(static_cast<uint8_t>((addrToPush & 0xFF00) >> 8)); // first push the upper byte
     stack_Push(static_cast<uint8_t>(addrToPush & 0x00FF)); // then push the lower byte (little endian)
-    IP = bus.read(addr);
+    IP = addr;
 }
 
 void R6502::LSR()
@@ -839,8 +888,8 @@ void R6502::PLP()
 }
 
 // unimplemented WDC extended instructions
-void R6502::UNIMPL(void) {}
-void R6502::BRK(void) {}
+void R6502::UNIMPL(void) {} // this is an instruction completely unimplemented and probably does something wrong to the CPU, so we instead do nothing in the emulator
+void R6502::BRK(void) {}    // also this is kinda useless so we ignore and do nothing for this one
 void R6502::TSB(void) {}
 void R6502::RMB0(void) {}
 void R6502::BBR0(void) {}
