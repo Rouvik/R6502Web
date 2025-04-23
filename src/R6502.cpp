@@ -925,6 +925,12 @@ void R6502::BRK(void)
     IP = bus.read(0xFFFE) | (bus.read(0xFFFF) << 8);
 }
 
+void R6502::RTI(void)
+{
+    reg_Status = stack_Pop();   // get status to original
+    IP = stack_Pop() | (stack_Pop() << 8);    // reconstruct the pushed address and assign to IP
+}
+
 // unimplemented WDC extended instructions
 void R6502::UNIMPL(void) {} // this is an instruction completely unimplemented and probably does something wrong to the CPU, so we instead do nothing in the emulator
 void R6502::TSB(void) {}
@@ -937,7 +943,6 @@ void R6502::RMB2(void) {}
 void R6502::BBR2(void) {}
 void R6502::RMB3(void) {}
 void R6502::BBR3(void) {}
-void R6502::RTI(void) {}
 void R6502::RMB4(void) {}
 void R6502::BBR4(void) {}
 void R6502::RMB5(void) {}

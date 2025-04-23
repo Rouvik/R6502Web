@@ -76,7 +76,14 @@ int main()
 
     R6502Mem *memory = &R6502::bus.memory;
     
-    loadHexProgram("./code.hex", memory, 0);
+    loadHexProgram("./programs/interrupt.hex", memory, 0x600);
+
+    R6502::bus.write(0xFFFA, 0x11);
+    R6502::bus.write(0xFFFB, 0x06);
+    R6502::bus.write(0xFFFE, 0x0A);
+    R6502::bus.write(0xFFFF, 0x06);
+
+    R6502::IP = 0x600;
 
     LOG(ProgramMemory, "Before start");
     memory->renderMemory();
@@ -94,7 +101,7 @@ int main()
         cpu.clock();
         std::cout << "CPU STATE:: X: " << static_cast<int>(R6502::reg_X) << " Y: " << static_cast<int>(R6502::reg_Y) << " Acc: " << static_cast<int>(R6502::reg_Acc) << " Status: " << std::bitset<8>(R6502::reg_Status) << '\n';
         LOG(MEMORY_RENDER, "Step: " << i);
-        memory->renderMemory();
+        memory->renderMemory(512);
         std::cout << "\n> ";
 
         if (autoRun)
@@ -105,6 +112,16 @@ int main()
         {
             std::cin >> ch;
         }
+
+        if (ch == 'i')
+        {
+            R6502::IRQ();   // raise an interrupt
+        }
+        else if (ch == 'n')
+        {
+            R6502::NMI();
+        }
+        
     } while (ch != 'q' && i < 4);
     
     return 0;
