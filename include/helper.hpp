@@ -1,6 +1,8 @@
 #ifndef INCLUDED_HELPER_HPP
 #define INCLUDED_HELPER_HPP
 
+#include <iostream>
+
 #define LOG_INFO << __FILE__ ":" << __LINE__ << " (" << __FUNCTION__ << ") -- " <<
 // #define LOG_INFO << // Uncomment this line to disable detailed logging
 
