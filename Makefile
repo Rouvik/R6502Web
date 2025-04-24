@@ -1,4 +1,4 @@
-.PHONY: all mkdirs clean
+.PHONY: all mkdirs clean objBuild
 
 CXX := g++
 
@@ -15,6 +15,9 @@ FLAGS = -Wall -Wextra -I$(INCLUDE)
 
 all: mkdirs main.cpp $(OUTPUTS)
 	$(CXX) -o $(BUILD)/main.exe main.cpp $(OUTPUTS) $(FLAGS) $(DEBUG)
+
+# Only build the required object files and not the driver executable
+objBuild: mkdirs $(OUTPUTS)
 
 $(BUILD)/%.o: $(SRC)/%.cpp $(INCLUDE)/%.hpp
 	$(CXX) -c -o $@ $< $(FLAGS)
