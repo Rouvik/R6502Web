@@ -428,6 +428,11 @@ void R6502::REL()
     uint8_t rel = bus.read(IP);
     IP++;
     addr = static_cast<uint16_t>(IP + rel);
+
+    if ((IP & 0xFF00) != (addr & 0xFF00))   // if page boundary crossed
+    {
+        ticks++;    // waste another tick
+    }
 }
 
 void R6502::INX()
@@ -445,6 +450,12 @@ void R6502::INY()
     IP++;
     uint16_t ptr = bus.read(base) | (bus.read((base + 1) & 0xFF) << 8);
     addr = ptr + reg_Y;
+
+    // page boundary cross
+    if ((ptr & 0xFF00) != (addr & 0xFF00))
+    {
+        ticks++;    // waste another tick
+    }
 }
 
 void R6502::ABX()
@@ -452,6 +463,12 @@ void R6502::ABX()
     uint16_t ptr = bus.read(IP) | (bus.read(IP + 1) << 8);
     IP += 2;
     addr = ptr + reg_X;
+
+    // page boundary cross
+    if ((ptr & 0xFF00) != (addr & 0xFF00))
+    {
+        ticks++;    // waste another tick
+    }
 }
 
 void R6502::ABY()
@@ -459,6 +476,12 @@ void R6502::ABY()
     uint16_t ptr = bus.read(IP) | (bus.read(IP + 1) << 8);
     IP += 2;
     addr = ptr + reg_Y;
+
+    // page boundary cross
+    if ((ptr & 0xFF00) != (addr & 0xFF00))
+    {
+        ticks++;    // waste another tick
+    }
 }
 
 void R6502::ZPI()
@@ -593,6 +616,7 @@ void R6502::BPL()
     if (!getStatus(StatusFlags::N))
     {
         IP = addr;
+        ticks++;
     }
 }
 
@@ -601,6 +625,7 @@ void R6502::BMI()
     if (getStatus(StatusFlags::N))
     {
         IP = addr;
+        ticks++;
     }
 }
 
@@ -609,6 +634,7 @@ void R6502::BVC()
     if (!getStatus(StatusFlags::V))
     {
         IP = addr;
+        ticks++;
     }
 }
 
@@ -617,6 +643,7 @@ void R6502::BVS()
     if (getStatus(StatusFlags::V))
     {
         IP = addr;
+        ticks++;
     }
 }
 
@@ -625,6 +652,7 @@ void R6502::BCC()
     if (!getStatus(StatusFlags::C))
     {
         IP = addr;
+        ticks++;
     }
 }
 
@@ -633,6 +661,7 @@ void R6502::BCS()
     if (getStatus(StatusFlags::C))
     {
         IP = addr;
+        ticks++;
     }
 }
 
@@ -641,6 +670,7 @@ void R6502::BNE()
     if (!getStatus(StatusFlags::Z))
     {
         IP = addr;
+        ticks++;
     }
 }
 
@@ -649,6 +679,7 @@ void R6502::BEQ()
     if (getStatus(StatusFlags::Z))
     {
         IP = addr;
+        ticks++;
     }
 }
 
