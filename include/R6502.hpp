@@ -8,6 +8,8 @@
 
 #define ENABLE_STACK_CHECKS // enables a check for each stack operation for checking stack overflow and underflows in the system, only logs a visual error and doesnt crash the system however
 
+#define HIDE_TICKS_DISPLAY  // hides the ticks display for debugging purposes
+
 typedef struct Instruction
 {
     std::string op;

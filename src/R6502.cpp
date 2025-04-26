@@ -308,6 +308,11 @@ bool R6502::getStatus(StatusFlags flag)
 
 void R6502::clock()
 {
+    
+#ifndef HIDE_TICKS_DISPLAY
+    LOG(clock_TICK, "TICKS: " << ticks);
+#endif
+
     // waste ticks
     if (ticks > 0)
     {
@@ -331,7 +336,7 @@ void R6502::clock()
     instruction.addrmode();
     instruction.operation();
 
-    ticks += instruction.cycles;
+    ticks = instruction.cycles;
 }
 
 void R6502::stack_Push(uint8_t data)
@@ -778,7 +783,6 @@ void R6502::JMP()
 void R6502::JSR()
 {
     uint16_t addrToPush = IP - 1;
-    LOG(DEBUG, addrToPush);
     stack_Push(static_cast<uint8_t>((addrToPush & 0xFF00) >> 8)); // first push the upper byte
     stack_Push(static_cast<uint8_t>(addrToPush & 0x00FF));        // then push the lower byte (little endian)
     IP = addr;
@@ -928,7 +932,6 @@ void R6502::PHA()
 void R6502::PLA()
 {
     reg_Acc = stack_Pop();
-    LOG(PLA_DEBUG, "Pulled: " << std::hex << (uint32_t)reg_Acc);
     setStatus(StatusFlags::Z, reg_Acc == 0);
     setStatus(StatusFlags::N, reg_Acc & 0x80);
 }
