@@ -9,6 +9,7 @@
 #define ENABLE_STACK_CHECKS // enables a check for each stack operation for checking stack overflow and underflows in the system, only logs a visual error and doesnt crash the system however
 
 #define HIDE_TICKS_DISPLAY  // hides the ticks display for debugging purposes
+// #define DISABLE_TIMING_TICKS  // disables ticks entirely leading to immediate execution, which is quite faster but also looks fake
 
 typedef struct Instruction
 {
@@ -31,6 +32,7 @@ public:
     static void setBus(R6502Bus bus);
 
     // system variables
+    static int total_cycles;
     static int ticks;
     static uint32_t IP;
     static uint8_t instr;
@@ -68,7 +70,11 @@ public:
     static void stack_Push(uint8_t data);
     static uint8_t stack_Pop();
 
+    // heartbeat of the CPU
     static void clock();
+
+    // resets the entire CPU state back, but doesnt modify anything else outside CPU stuff, now even memory
+    void reset();
 
     // interrupts
     static void NMI();

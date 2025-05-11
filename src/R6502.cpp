@@ -8,6 +8,7 @@ void R6502::setBus(R6502Bus bus)
 }
 
 R6502Bus R6502::bus;
+int R6502::total_cycles = 0;
 int R6502::ticks = 0;
 uint32_t R6502::IP = 0;
 uint8_t R6502::reg_Acc = 0;
@@ -308,17 +309,20 @@ bool R6502::getStatus(StatusFlags flag)
 
 void R6502::clock()
 {
-    
-#ifndef HIDE_TICKS_DISPLAY
-    LOG(clock_TICK, "TICKS: " << ticks);
-#endif
+    total_cycles++; // count the number of iterations
 
-    // waste ticks
-    if (ticks > 0)
-    {
-        ticks--;
-        return;
-    }
+#ifndef DISABLE_TIMING_TICKS
+    #ifndef HIDE_TICKS_DISPLAY
+        LOG(clock_TICK, "TICKS: " << ticks);
+    #endif // HIDE_TICKS_DISPLAY
+
+        // waste ticks
+        if (ticks > 0)
+        {
+            ticks--;
+            return;
+        }
+#endif // DISABLE_TIMING_TICKS
 
     instr = bus.read(IP);
     Instruction_t instruction;
@@ -337,6 +341,24 @@ void R6502::clock()
     instruction.operation();
 
     ticks = instruction.cycles;
+}
+
+void R6502::reset()
+{
+    total_cycles = 0;
+    ticks = 0;
+    IP = 0;
+    reg_Acc = 0;
+    reg_X = 0;
+    reg_Y = 0;
+    reg_Status = 0;
+    reg_Stack = 0x1FF;
+    instr = 0;
+    imm = 0;
+    addr = 0;
+    accumulator = false;
+    indirect = false;
+    zeroIndirect = false;
 }
 
 void R6502::stack_Push(uint8_t data)
@@ -434,9 +456,9 @@ void R6502::REL()
     IP++;
     addr = static_cast<uint16_t>(IP + rel);
 
-    if ((IP & 0xFF00) != (addr & 0xFF00))   // if page boundary crossed
+    if ((IP & 0xFF00) != (addr & 0xFF00)) // if page boundary crossed
     {
-        ticks++;    // waste another tick
+        ticks++; // waste another tick
     }
 }
 
@@ -459,7 +481,7 @@ void R6502::INY()
     // page boundary cross
     if ((ptr & 0xFF00) != (addr & 0xFF00))
     {
-        ticks++;    // waste another tick
+        ticks++; // waste another tick
     }
 }
 
@@ -472,7 +494,7 @@ void R6502::ABX()
     // page boundary cross
     if ((ptr & 0xFF00) != (addr & 0xFF00))
     {
-        ticks++;    // waste another tick
+        ticks++; // waste another tick
     }
 }
 
@@ -485,7 +507,7 @@ void R6502::ABY()
     // page boundary cross
     if ((ptr & 0xFF00) != (addr & 0xFF00))
     {
-        ticks++;    // waste another tick
+        ticks++; // waste another tick
     }
 }
 
@@ -951,18 +973,18 @@ void R6502::PLP()
 void R6502::BRK(void)
 {
     IP++;
-    stack_Push((IP >> 8) & 0xFF);   // push higher bits of address
-    stack_Push(IP & 0xFF);          // then push the lower address bits
+    stack_Push((IP >> 8) & 0xFF);                                               // push higher bits of address
+    stack_Push(IP & 0xFF);                                                      // then push the lower address bits
     setStatus(static_cast<StatusFlags>(StatusFlags::B | StatusFlags::U), true); // set both the BRK and unused flags since this is a BRK instruction
     stack_Push(reg_Status);
-    setStatus(StatusFlags::I, true);    // disable interrupts
+    setStatus(StatusFlags::I, true); // disable interrupts
     IP = bus.read(0xFFFE) | (bus.read(0xFFFF) << 8);
 }
 
 void R6502::RTI(void)
 {
-    reg_Status = stack_Pop();   // get status to original
-    IP = stack_Pop() | (stack_Pop() << 8);    // reconstruct the pushed address and assign to IP
+    reg_Status = stack_Pop();              // get status to original
+    IP = stack_Pop() | (stack_Pop() << 8); // reconstruct the pushed address and assign to IP
 }
 
 // unimplemented WDC extended instructions
