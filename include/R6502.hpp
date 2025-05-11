@@ -1,14 +1,15 @@
 #ifndef INCLUDED_R6502_HPP
 #define INCLUDED_R6502_HPP
 
-#include <R6502Bus.hpp>
+#include <R6502MemBus.hpp>
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <memory>
 
 #define ENABLE_STACK_CHECKS // enables a check for each stack operation for checking stack overflow and underflows in the system, only logs a visual error and doesnt crash the system however
 
-#define HIDE_TICKS_DISPLAY  // hides the ticks display for debugging purposes
+#define HIDE_TICKS_DISPLAY // hides the ticks display for debugging purposes
 // #define DISABLE_TIMING_TICKS  // disables ticks entirely leading to immediate execution, which is quite faster but also looks fake
 
 typedef struct Instruction
@@ -22,14 +23,15 @@ typedef struct Instruction
 class R6502
 {
 public:
-    static R6502Bus bus;
-
     static std::vector<Instruction_t> Instructions;
 
-    R6502();
+    R6502() = delete;
+
+    explicit R6502(std::unique_ptr<R6502Bus> &&bus);
     ~R6502() = default;
 
-    static void setBus(R6502Bus bus);
+    void setBus(std::unique_ptr<R6502Bus> &&bus);
+    R6502Bus *getBus() const;
 
     // system variables
     static int total_cycles;
@@ -41,7 +43,7 @@ public:
     static bool accumulator;
     static bool indirect;
     static bool zeroIndirect;
-    
+
     // registers
     static uint16_t reg_Stack;
     static uint8_t reg_X;
@@ -50,7 +52,8 @@ public:
     static uint8_t reg_Status;
 
     // status management
-    enum StatusFlags {
+    enum StatusFlags
+    {
         C = 1,
         Z = 1 << 1,
         I = 1 << 2,
@@ -196,7 +199,10 @@ public:
     static void SMB7(void);
     static void SED(void);
     static void PLX(void);
-    static void BBS7(void);           
+    static void BBS7(void);
+
+private:
+    static std::unique_ptr<R6502Bus> bus;
 };
 
 #endif // INCLUDED_R6502_HPP

@@ -1,13 +1,27 @@
 #include <R6502.hpp>
 
-R6502::R6502() {}
-
-void R6502::setBus(R6502Bus bus)
+R6502::R6502(std::unique_ptr<R6502Bus> &&bus)
 {
-    R6502::bus = bus;
+    setBus(std::move(bus));
 }
 
-R6502Bus R6502::bus;
+R6502Bus *R6502::getBus() const
+{
+    return bus.get();
+}
+
+void R6502::setBus(std::unique_ptr<R6502Bus> &&bus)
+{
+    if (bus == nullptr)
+    {
+        ERROR(R6502::setBus, "Bus cannot be null, CPU read writes will fail");
+        return;
+    }
+    
+    this->bus = std::move(bus);
+}
+
+std::unique_ptr<R6502Bus> R6502::bus;
 int R6502::total_cycles = 0;
 int R6502::ticks = 0;
 uint32_t R6502::IP = 0;
@@ -324,7 +338,7 @@ void R6502::clock()
         }
 #endif // DISABLE_TIMING_TICKS
 
-    instr = bus.read(IP);
+    instr = bus.get()->read(IP);
     Instruction_t instruction;
     try
     {
@@ -363,7 +377,7 @@ void R6502::reset()
 
 void R6502::stack_Push(uint8_t data)
 {
-    bus.write(reg_Stack, data);
+    bus.get()->write(reg_Stack, data);
     reg_Stack--;
 
 #ifdef ENABLE_STACK_CHECKS
@@ -385,7 +399,7 @@ uint8_t R6502::stack_Pop()
     }
 #endif
 
-    uint8_t data = bus.read(reg_Stack);
+    uint8_t data = bus.get()->read(reg_Stack);
     return data;
 }
 
@@ -397,8 +411,8 @@ void R6502::ACC()
 
 void R6502::ABS()
 {
-    addr = bus.read(IP);
-    addr |= bus.read(IP + 1) << 8;
+    addr = bus.get()->read(IP);
+    addr |= bus.get()->read(IP + 1) << 8;
     IP += 2; // point to next instruction
 }
 
@@ -410,20 +424,20 @@ void R6502::IMM()
 
 void R6502::ZP0()
 {
-    addr = bus.read(IP);
+    addr = bus.get()->read(IP);
     IP++;
 }
 
 void R6502::ZPX()
 {
-    addr = bus.read(IP);
+    addr = bus.get()->read(IP);
     IP++;
     addr = (addr + reg_X) & 0xFF; // make sure its zero paged
 }
 
 void R6502::ZPY()
 {
-    addr = bus.read(IP);
+    addr = bus.get()->read(IP);
     IP++;
     addr = (addr + reg_Y) & 0xFF; // make sure its zero paged
 }
@@ -432,18 +446,18 @@ void R6502::IMP() {} // implied, does nothing for now and lets the instruction d
 
 void R6502::JIND()
 {
-    uint16_t ptr = bus.read(IP);
-    ptr |= bus.read(IP + 1) << 8;
+    uint16_t ptr = bus.get()->read(IP);
+    ptr |= bus.get()->read(IP + 1) << 8;
 
-    uint16_t calcAddr = bus.read(ptr);
+    uint16_t calcAddr = bus.get()->read(ptr);
 
     if ((ptr & 0xFF) == 0xFF)
     {
-        calcAddr |= bus.read(ptr & 0xFF00) << 8;
+        calcAddr |= bus.get()->read(ptr & 0xFF00) << 8;
     }
     else
     {
-        calcAddr |= bus.read(ptr + 1) << 8;
+        calcAddr |= bus.get()->read(ptr + 1) << 8;
     }
 
     addr = calcAddr;
@@ -452,7 +466,7 @@ void R6502::JIND()
 
 void R6502::REL()
 {
-    uint8_t rel = bus.read(IP);
+    uint8_t rel = bus.get()->read(IP);
     IP++;
     addr = static_cast<uint16_t>(IP + rel);
 
@@ -464,18 +478,18 @@ void R6502::REL()
 
 void R6502::INX()
 {
-    uint8_t base = bus.read(IP);
+    uint8_t base = bus.get()->read(IP);
     IP++;
-    uint8_t lo = bus.read((base + reg_X) & 0xFF);
-    uint8_t hi = bus.read((base + reg_X + 1) & 0xFF);
+    uint8_t lo = bus.get()->read((base + reg_X) & 0xFF);
+    uint8_t hi = bus.get()->read((base + reg_X + 1) & 0xFF);
     addr = (hi << 8) | lo;
 }
 
 void R6502::INY()
 {
-    uint8_t base = bus.read(IP);
+    uint8_t base = bus.get()->read(IP);
     IP++;
-    uint16_t ptr = bus.read(base) | (bus.read((base + 1) & 0xFF) << 8);
+    uint16_t ptr = bus.get()->read(base) | (bus.get()->read((base + 1) & 0xFF) << 8);
     addr = ptr + reg_Y;
 
     // page boundary cross
@@ -487,7 +501,7 @@ void R6502::INY()
 
 void R6502::ABX()
 {
-    uint16_t ptr = bus.read(IP) | (bus.read(IP + 1) << 8);
+    uint16_t ptr = bus.get()->read(IP) | (bus.get()->read(IP + 1) << 8);
     IP += 2;
     addr = ptr + reg_X;
 
@@ -500,7 +514,7 @@ void R6502::ABX()
 
 void R6502::ABY()
 {
-    uint16_t ptr = bus.read(IP) | (bus.read(IP + 1) << 8);
+    uint16_t ptr = bus.get()->read(IP) | (bus.get()->read(IP + 1) << 8);
     IP += 2;
     addr = ptr + reg_Y;
 
@@ -529,7 +543,7 @@ void R6502::NMI()
     setStatus(StatusFlags::B, false); // unset the BRK flag since it's NMI
     stack_Push(reg_Status);
     setStatus(StatusFlags::I, true); // disable further interrupts
-    IP = bus.read(0xFFFA) | (bus.read(0xFFFB) << 8);
+    IP = bus.get()->read(0xFFFA) | (bus.get()->read(0xFFFB) << 8);
 }
 
 void R6502::IRQ()
@@ -545,13 +559,13 @@ void R6502::IRQ()
     setStatus(StatusFlags::B, false); // dont set BRK since it is not a BRK interrupt call (hardware interrupt)
     stack_Push(reg_Status);
     setStatus(StatusFlags::I, true); // disable further interrupts
-    IP = bus.read(0xFFFE) | (bus.read(0xFFFF) << 8);
+    IP = bus.get()->read(0xFFFE) | (bus.get()->read(0xFFFF) << 8);
 }
 
 // instruction definitions
 void R6502::ADC()
 {
-    uint8_t data = bus.read(addr);
+    uint8_t data = bus.get()->read(addr);
     uint16_t sum = reg_Acc + data + getStatus(StatusFlags::C); // sum = Acc + fetched_data + Carry bit(1/0)
 
     // Overflow if: Accumulator and fetched_data have SAME SIGN but Accumulator and result have DIFFERENT SIGN
@@ -566,7 +580,7 @@ void R6502::ADC()
 
 void R6502::SBC()
 {
-    uint8_t data = bus.read(addr);
+    uint8_t data = bus.get()->read(addr);
 
     // in 6502 subtraction is performed by 1's complement of data and then adding to Accumulator, then adding carry as in a borrow scheme
     // the calculation actually extends to => Acc = Acc - data - (1 - Carry) => Acc = Acc + (~data) + Carry
@@ -584,39 +598,39 @@ void R6502::SBC()
 
 void R6502::LDA()
 {
-    reg_Acc = bus.read(addr);
+    reg_Acc = bus.get()->read(addr);
 }
 
 void R6502::LDX()
 {
-    reg_X = bus.read(addr);
+    reg_X = bus.get()->read(addr);
 }
 
 void R6502::LDY()
 {
-    reg_Y = bus.read(addr);
+    reg_Y = bus.get()->read(addr);
 }
 
 void R6502::STX()
 {
-    bus.write(addr, reg_X);
+    bus.get()->write(addr, reg_X);
 }
 
 void R6502::STY()
 {
-    bus.write(addr, reg_Y);
+    bus.get()->write(addr, reg_Y);
 }
 
 void R6502::AND()
 {
-    uint8_t val = bus.read(addr);
+    uint8_t val = bus.get()->read(addr);
     reg_Acc &= val;
     setStatus(StatusFlags::Z, reg_Acc == 0);
 }
 
 void R6502::ASL()
 {
-    uint8_t data = accumulator ? reg_Acc : bus.read(addr);
+    uint8_t data = accumulator ? reg_Acc : bus.get()->read(addr);
     setStatus(StatusFlags::C, data & 0x80);
 
     data <<= 1;
@@ -627,13 +641,13 @@ void R6502::ASL()
     }
     else
     {
-        bus.write(addr, data);
+        bus.get()->write(addr, data);
     }
 }
 
 void R6502::BIT()
 {
-    uint8_t data = bus.read(addr);
+    uint8_t data = bus.get()->read(addr);
     reg_Status |= data & 0xC0; // set N and V flags to bit 7 and 6
     setStatus(StatusFlags::Z, (data & reg_Acc) == 0);
 }
@@ -712,7 +726,7 @@ void R6502::BEQ()
 
 void R6502::CMP()
 {
-    uint8_t data = bus.read(addr);
+    uint8_t data = bus.get()->read(addr);
     setStatus(StatusFlags::C, reg_Acc >= data);                                 // if positive
     setStatus((StatusFlags)(StatusFlags::C | StatusFlags::Z), reg_Acc == data); // if zero
     setStatus(StatusFlags::N, (reg_Acc - data) & 0x80);                         // if negative MSB = 1
@@ -720,7 +734,7 @@ void R6502::CMP()
 
 void R6502::CPX()
 {
-    uint8_t data = bus.read(addr);
+    uint8_t data = bus.get()->read(addr);
     setStatus(StatusFlags::C, reg_X >= data);                                 // if positive
     setStatus((StatusFlags)(StatusFlags::C | StatusFlags::Z), reg_X == data); // if zero
     setStatus(StatusFlags::N, (reg_X - data) & 0x80);                         // if negative MSB = 1
@@ -728,7 +742,7 @@ void R6502::CPX()
 
 void R6502::CPY()
 {
-    uint8_t data = bus.read(addr);
+    uint8_t data = bus.get()->read(addr);
     setStatus(StatusFlags::C, reg_Y >= data);                                 // if positive
     setStatus((StatusFlags)(StatusFlags::C | StatusFlags::Z), reg_Y == data); // if zero
     setStatus(StatusFlags::N, (reg_Y - data) & 0x80);                         // if negative MSB = 1
@@ -736,17 +750,17 @@ void R6502::CPY()
 
 void R6502::DEC()
 {
-    uint8_t data = bus.read(addr);
+    uint8_t data = bus.get()->read(addr);
     data--;
     setStatus(StatusFlags::Z, data == 0);
     setStatus(StatusFlags::N, data & 0x80);
 
-    bus.write(addr, data);
+    bus.get()->write(addr, data);
 }
 
 void R6502::EOR()
 {
-    uint8_t data = bus.read(addr);
+    uint8_t data = bus.get()->read(addr);
     reg_Acc = reg_Acc ^ data;
     setStatus(StatusFlags::Z, data == 0);
     setStatus(StatusFlags::N, data & 0x80);
@@ -789,12 +803,12 @@ void R6502::SED()
 
 void R6502::INC()
 {
-    uint8_t data = bus.read(addr);
+    uint8_t data = bus.get()->read(addr);
     data++;
     setStatus(StatusFlags::Z, data == 0);
     setStatus(StatusFlags::N, data & 0x80);
 
-    bus.write(addr, data);
+    bus.get()->write(addr, data);
 }
 
 void R6502::JMP()
@@ -812,7 +826,7 @@ void R6502::JSR()
 
 void R6502::LSR()
 {
-    uint8_t data = accumulator ? reg_Acc : bus.read(addr); // handle accumulator cases
+    uint8_t data = accumulator ? reg_Acc : bus.get()->read(addr); // handle accumulator cases
 
     setStatus(StatusFlags::N, false); // always clear negative
     setStatus(StatusFlags::C, data & 0x1);
@@ -834,7 +848,7 @@ void R6502::NOP()
 
 void R6502::ORA()
 {
-    uint8_t data = bus.read(addr);
+    uint8_t data = bus.get()->read(addr);
     reg_Acc |= data;
     setStatus(StatusFlags::N, reg_Acc & 0x80);
     setStatus(StatusFlags::Z, reg_Acc == 0);
@@ -882,7 +896,7 @@ void R6502::INCY()
 
 void R6502::ROL()
 {
-    uint8_t data = accumulator ? reg_Acc : bus.read(addr);
+    uint8_t data = accumulator ? reg_Acc : bus.get()->read(addr);
     uint8_t new_carry = data & 0x80;                // preserve the old carry
     data = (data << 1) | getStatus(StatusFlags::C); // add in the bit from carry
     setStatus(StatusFlags::C, new_carry);           // set the new carry bit back
@@ -896,13 +910,13 @@ void R6502::ROL()
     }
     else
     {
-        bus.write(addr, data);
+        bus.get()->write(addr, data);
     }
 }
 
 void R6502::ROR()
 {
-    uint8_t data = accumulator ? reg_Acc : bus.read(addr);
+    uint8_t data = accumulator ? reg_Acc : bus.get()->read(addr);
     uint8_t new_carry = data & 0x1;                        // preserve the old carry
     data = (data >> 1) | (getStatus(StatusFlags::C) << 7); // add in the bit from carry
     setStatus(StatusFlags::C, new_carry);                  // set the new carry bit back
@@ -916,7 +930,7 @@ void R6502::ROR()
     }
     else
     {
-        bus.write(addr, data);
+        bus.get()->write(addr, data);
     }
 }
 
@@ -930,7 +944,7 @@ void R6502::RTS()
 
 void R6502::STA()
 {
-    bus.write(addr, reg_Acc);
+    bus.get()->write(addr, reg_Acc);
 }
 
 void R6502::TXS()
@@ -978,7 +992,7 @@ void R6502::BRK(void)
     setStatus(static_cast<StatusFlags>(StatusFlags::B | StatusFlags::U), true); // set both the BRK and unused flags since this is a BRK instruction
     stack_Push(reg_Status);
     setStatus(StatusFlags::I, true); // disable interrupts
-    IP = bus.read(0xFFFE) | (bus.read(0xFFFF) << 8);
+    IP = bus.get()->read(0xFFFE) | (bus.get()->read(0xFFFF) << 8);
 }
 
 void R6502::RTI(void)

@@ -6,13 +6,11 @@
 class R6502Bus
 {
 public:
-    R6502Mem memory;
-
-    R6502Bus();
+    R6502Bus() = default;
     ~R6502Bus() = default;
 
-    uint8_t read(uint32_t addr);
-    void write(uint32_t addr, uint8_t data);
+    virtual uint8_t read(uint32_t addr) = 0;
+    virtual void write(uint32_t addr, uint8_t data) = 0;
 };
 
 #endif // INCLUDED_R6502_BUS_HPP
