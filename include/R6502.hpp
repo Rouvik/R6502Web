@@ -1,7 +1,7 @@
 #ifndef INCLUDED_R6502_HPP
 #define INCLUDED_R6502_HPP
 
-#include <R6502MemBus.hpp>
+#include <R6502Bus.hpp>
 #include <vector>
 #include <string>
 #include <cstdint>
@@ -74,7 +74,7 @@ public:
     static uint8_t stack_Pop();
 
     // heartbeat of the CPU
-    static void clock();
+    static void clock(std::ostream &out);
 
     // resets the entire CPU state back, but doesnt modify anything else outside CPU stuff, now even memory
     void reset();

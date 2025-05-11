@@ -17,7 +17,7 @@ void R6502::setBus(std::unique_ptr<R6502Bus> &&bus)
         ERROR(R6502::setBus, "Bus cannot be null, CPU read writes will fail");
         return;
     }
-    
+
     this->bus = std::move(bus);
 }
 
@@ -321,21 +321,21 @@ bool R6502::getStatus(StatusFlags flag)
     return (reg_Status & flag) == flag;
 }
 
-void R6502::clock()
+void R6502::clock(std::ostream &out)
 {
     total_cycles++; // count the number of iterations
 
 #ifndef DISABLE_TIMING_TICKS
-    #ifndef HIDE_TICKS_DISPLAY
-        LOG(clock_TICK, "TICKS: " << ticks);
-    #endif // HIDE_TICKS_DISPLAY
+#ifndef HIDE_TICKS_DISPLAY
+    LOG(clock_TICK, "TICKS: " << ticks);
+#endif // HIDE_TICKS_DISPLAY
 
-        // waste ticks
-        if (ticks > 0)
-        {
-            ticks--;
-            return;
-        }
+    // waste ticks
+    if (ticks > 0)
+    {
+        ticks--;
+        return;
+    }
 #endif // DISABLE_TIMING_TICKS
 
     instr = bus.get()->read(IP);
@@ -355,6 +355,16 @@ void R6502::clock()
     instruction.operation();
 
     ticks = instruction.cycles;
+
+    out << std::hex << std::setfill('0') << std::setw(4) << R6502::IP << ' '
+        << std::setw(2) << static_cast<uint32_t>(R6502::instr) << ' '
+        << "A: " << static_cast<uint32_t>(R6502::reg_Acc) << ' '
+        << "X: " << static_cast<uint32_t>(R6502::reg_X) << ' '
+        << "Y: " << static_cast<uint32_t>(R6502::reg_Y) << ' '
+        << "P: " << static_cast<uint32_t>(R6502::reg_Status) << ' '
+        << "SP: " << R6502::reg_Stack << ' '
+        << std::dec << std::setw(0) << "CYC: " << R6502::total_cycles << '\n'
+        << std::setfill(' ');
 }
 
 void R6502::reset()
