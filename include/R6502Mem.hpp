@@ -10,7 +10,7 @@
 class R6502Mem
 {
 public:
-    static const uint32_t MEM_RANGE = 32;
+    static const uint32_t MEM_RANGE = 8;
     uint8_t *memory;
     uint32_t size;
     int offset;
