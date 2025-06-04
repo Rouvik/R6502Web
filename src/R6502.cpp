@@ -323,8 +323,6 @@ bool R6502::getStatus(StatusFlags flag)
 
 void R6502::clock(std::ostream &out)
 {
-    total_cycles++; // count the number of iterations
-
 #ifndef DISABLE_TIMING_TICKS
 #ifndef HIDE_TICKS_DISPLAY
     LOG(clock_TICK, "TICKS: " << ticks);
@@ -350,14 +348,16 @@ void R6502::clock(std::ostream &out)
         ERROR(R6502_clock, "Unknown instruction: " << instr);
         return;
     }
-
-    instruction.addrmode();
-    instruction.operation();
-
+    
     ticks = instruction.cycles;
+    instruction.addrmode();     // addressing mode adds additional ticks
+    instruction.operation();
+    
+    total_cycles += ticks;      // count the total number of instruction cycles
 
     out << std::hex << std::setfill('0') << std::setw(4) << R6502::IP << ' '
         << std::setw(2) << static_cast<uint32_t>(R6502::instr) << ' '
+        << std::setw(2) << instruction.op << ' '
         << "A: " << static_cast<uint32_t>(R6502::reg_Acc) << ' '
         << "X: " << static_cast<uint32_t>(R6502::reg_X) << ' '
         << "Y: " << static_cast<uint32_t>(R6502::reg_Y) << ' '

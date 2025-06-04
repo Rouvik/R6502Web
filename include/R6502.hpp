@@ -10,7 +10,7 @@
 #define ENABLE_STACK_CHECKS // enables a check for each stack operation for checking stack overflow and underflows in the system, only logs a visual error and doesnt crash the system however
 
 #define HIDE_TICKS_DISPLAY // hides the ticks display for debugging purposes
-// #define DISABLE_TIMING_TICKS  // disables ticks entirely leading to immediate execution, which is quite faster but also looks fake
+#define DISABLE_TIMING_TICKS  // disables clock ticks required since slowing down the CPU is unnecessary
 
 typedef struct Instruction
 {
