@@ -321,7 +321,7 @@ bool R6502::getStatus(StatusFlags flag)
     return (reg_Status & flag) == flag;
 }
 
-void R6502::clock(std::ostream &out)
+void R6502::clock()
 {
 #ifndef DISABLE_TIMING_TICKS
 #ifndef HIDE_TICKS_DISPLAY
@@ -354,17 +354,6 @@ void R6502::clock(std::ostream &out)
     instruction.operation();
     
     total_cycles += ticks;      // count the total number of instruction cycles
-
-    out << std::hex << std::setfill('0') << std::setw(4) << R6502::IP << ' '
-        << std::setw(2) << static_cast<uint32_t>(R6502::instr) << ' '
-        << std::setw(2) << instruction.op << ' '
-        << "A: " << static_cast<uint32_t>(R6502::reg_Acc) << ' '
-        << "X: " << static_cast<uint32_t>(R6502::reg_X) << ' '
-        << "Y: " << static_cast<uint32_t>(R6502::reg_Y) << ' '
-        << "P: " << static_cast<uint32_t>(R6502::reg_Status) << ' '
-        << "SP: " << R6502::reg_Stack << ' '
-        << std::dec << std::setw(0) << "CYC: " << R6502::total_cycles << '\n'
-        << std::setfill(' ');
 }
 
 void R6502::reset()

@@ -74,7 +74,7 @@ public:
     static uint8_t stack_Pop();
 
     // heartbeat of the CPU
-    static void clock(std::ostream &out);
+    static void clock();
 
     // resets the entire CPU state back, but doesnt modify anything else outside CPU stuff, now even memory
     void reset();
