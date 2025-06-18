@@ -16,6 +16,7 @@ public:
     int offset;
 
     R6502Mem(int capacity, int offset = 0);
+    R6502Mem(const R6502Mem &mem) = delete; // delete copy constructor prevent copies
     ~R6502Mem();
 
     uint8_t read(uint32_t addr);

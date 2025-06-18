@@ -70,6 +70,23 @@ void loadBinProgram(std::string fileName, R6502Mem *memory, uint32_t writeOffset
     in.close();
 }
 
+// debug Bus memory to run simple programs
+class R6502MemBus : public R6502Bus
+{
+public:
+    R6502Mem memory{0xFFFF, 0};
+
+    uint8_t read(uint32_t address)
+    {
+        return memory.read(address);
+    }
+
+    void write(uint32_t address, uint8_t data)
+    {
+        memory.write(address, data);
+    }
+};
+
 int main()
 {
     R6502 cpu{std::make_unique<R6502MemBus>()};
@@ -94,14 +111,12 @@ int main()
     std::cin >> ch1;
     bool autoRun = ch1 == 'y';
 
-    int i = 0;
     char ch = 0;
     do
     {
         std::cout << std::dec << "\e[H\e[2JInstruction: " << R6502::Instructions[R6502::instr].op << " IP: " << R6502::IP << '\n';
         cpu.clock();
         std::cout << "CPU STATE:: X: " << static_cast<int>(R6502::reg_X) << " Y: " << static_cast<int>(R6502::reg_Y) << " Acc: " << static_cast<int>(R6502::reg_Acc) << " Status: " << std::bitset<8>(R6502::reg_Status) << '\n';
-        LOG(MEMORY_RENDER, "Step: " << i);
         memory->renderMemory(512);
         std::cout << "\n> ";
 
@@ -123,7 +138,7 @@ int main()
             R6502::NMI();
         }
 
-    } while (ch != 'q' && i < 4);
+    } while (ch != 'q');
 
     return 0;
 }

@@ -1,6 +1,6 @@
 #include <R6502.hpp>
 
-#include <bitset>   // DEBUG
+#include <bitset> // DEBUG
 
 R6502::R6502(std::unique_ptr<R6502Bus> &&bus)
 {
@@ -365,11 +365,11 @@ void R6502::clock()
     {
         throw std::runtime_error("Unknown instruction exception!");
     }
-    
+
     logFile << std::dec << "Instruction: " << R6502::Instructions[R6502::instr].op << " IP: " << std::hex << R6502::IP << std::dec << '\n';
     logFile << "CPU STATE:: X: " << static_cast<int>(R6502::reg_X) << " Y: " << static_cast<int>(R6502::reg_Y) << " Acc: " << static_cast<int>(R6502::reg_Acc) << std::hex << " Stack: " << reg_Stack << " Status: " << std::bitset<8>(R6502::reg_Status) << '\n';
-    
-    IP++;   // update Instruction pointer
+
+    IP++; // update Instruction pointer
 
     ticks = instruction.cycles;
     instruction.addrmode(); // addressing mode adds additional ticks
@@ -401,6 +401,8 @@ void R6502::stack_Push(uint8_t data)
     bus.get()->write(reg_Stack, data);
     reg_Stack--;
 
+    LOG(STACK_PUSH, "Data: " << static_cast<int>(data) << " Stack pointer (after write): " << reg_Stack);
+
 #ifdef ENABLE_STACK_CHECKS
     if (reg_Stack < 0x100)
     {
@@ -421,6 +423,7 @@ uint8_t R6502::stack_Pop()
 #endif
 
     uint8_t data = bus.get()->read(reg_Stack);
+    LOG(STACK_POP, "Data: " << static_cast<int>(data) << " Stack pointer (after read): " << reg_Stack);
     return data;
 }
 
@@ -490,7 +493,7 @@ void R6502::REL()
     // IP is already pointing to operand
     int8_t offset = static_cast<int8_t>(bus.get()->read(IP));
 
-    IP++;   // increment IP and skip the operand, may be overwritten by the Branch instruction on a successfull branch
+    IP++; // increment IP and skip the operand, may be overwritten by the Branch instruction on a successfull branch
     addr = IP + offset;
 
     if ((IP & 0xFF00) != (addr & 0xFF00)) // if page boundary crossed
@@ -622,16 +625,27 @@ void R6502::SBC()
 void R6502::LDA()
 {
     reg_Acc = bus.get()->read(addr);
+    setStatus(StatusFlags::N, reg_Acc & 0x80);
+    setStatus(StatusFlags::Z, reg_Acc == 0);
+
+    if (IP - 3 == 0x8022)
+    {
+        LOG(PRECISE_DBG, "ACC: " << std::dec << static_cast<int>(reg_Acc));
+    }
 }
 
 void R6502::LDX()
 {
     reg_X = bus.get()->read(addr);
+    setStatus(StatusFlags::N, reg_X & 0x80);
+    setStatus(StatusFlags::Z, reg_X == 0);
 }
 
 void R6502::LDY()
 {
     reg_Y = bus.get()->read(addr);
+    setStatus(StatusFlags::N, reg_Y & 0x80);
+    setStatus(StatusFlags::Z, reg_Y == 0);
 }
 
 void R6502::STX()
@@ -658,6 +672,10 @@ void R6502::ASL()
     setStatus(StatusFlags::C, data & 0x80);
 
     data <<= 1;
+
+    setStatus(StatusFlags::Z, data == 0);
+    setStatus(StatusFlags::N, data & 0x80);
+
     if (accumulator)
     {
         reg_Acc = data;
@@ -842,10 +860,12 @@ void R6502::JMP()
 
 void R6502::JSR()
 {
-    uint16_t addrToPush = IP - 1;
-    stack_Push(static_cast<uint8_t>((addrToPush & 0xFF00) >> 8)); // first push the upper byte
-    stack_Push(static_cast<uint8_t>(addrToPush & 0x00FF));        // then push the lower byte (little endian)
+    uint16_t addrToPush = IP - 1;   // since IP already pointed to next instruction, decrement the address to get pointer to byte before the next instruction
+    stack_Push((addrToPush >> 8) & 0xFF); // first push the upper byte
+    stack_Push(static_cast<uint8_t>(addrToPush & 0xFF));        // then push the lower byte (little endian)
     IP = addr;
+
+    LOG(JSR_DEBUG, "Pushed to stack: " << addrToPush);
 }
 
 void R6502::LSR()
@@ -857,6 +877,8 @@ void R6502::LSR()
 
     data >>= 1;
     data &= 0x7F; // make sure the 7th bit is zero
+
+    setStatus(StatusFlags::Z, data == 0);
 
     if (accumulator) // handle accumulator case
     {
@@ -881,41 +903,57 @@ void R6502::ORA()
 void R6502::TAX()
 {
     reg_X = reg_Acc;
+    setStatus(StatusFlags::Z, reg_X == 0);
+    setStatus(StatusFlags::N, reg_X & 0x80);
 }
 
 void R6502::TXA()
 {
     reg_Acc = reg_X;
+    setStatus(StatusFlags::Z, reg_Acc == 0);
+    setStatus(StatusFlags::N, reg_Acc & 0x80);
 }
 
 void R6502::DEX()
 {
     reg_X--;
+    setStatus(StatusFlags::Z, reg_X == 0);
+    setStatus(StatusFlags::N, reg_X & 0x80);
 }
 
 void R6502::INCX()
 {
     reg_X++;
+    setStatus(StatusFlags::Z, reg_X == 0);
+    setStatus(StatusFlags::N, reg_X & 0x80);
 }
 
 void R6502::TAY()
 {
     reg_Y = reg_Acc;
+    setStatus(StatusFlags::Z, reg_Y == 0);
+    setStatus(StatusFlags::N, reg_Y & 0x80);
 }
 
 void R6502::TYA()
 {
     reg_Acc = reg_Y;
+    setStatus(StatusFlags::Z, reg_Acc == 0);
+    setStatus(StatusFlags::N, reg_Acc & 0x80);
 }
 
 void R6502::DEY()
 {
     reg_Y--;
+    setStatus(StatusFlags::Z, reg_Y == 0);
+    setStatus(StatusFlags::N, reg_Y & 0x80);
 }
 
 void R6502::INCY()
 {
     reg_Y++;
+    setStatus(StatusFlags::Z, reg_Y == 0);
+    setStatus(StatusFlags::N, reg_Y & 0x80);
 }
 
 void R6502::ROL()
@@ -1010,6 +1048,7 @@ void R6502::PLP()
 
 void R6502::BRK(void)
 {
+    // assert(IP > 0x200 && "Invalid program stack, exitting to prevent crashes");
     return; // ignore BRK for now
     IP++;
     uint8_t ret = IP + 1;
