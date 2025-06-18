@@ -769,25 +769,25 @@ void R6502::BEQ()
 void R6502::CMP()
 {
     uint8_t data = bus.get()->read(addr);
-    setStatus(StatusFlags::C, reg_Acc >= data);                                 // if positive
-    setStatus((StatusFlags)(StatusFlags::C | StatusFlags::Z), reg_Acc == data); // if zero
-    setStatus(StatusFlags::N, (reg_Acc - data) & 0x80);                         // if negative MSB = 1
+    setStatus(StatusFlags::C, reg_Acc >= data);         // if positive
+    setStatus(StatusFlags::Z, reg_Acc == data);         // if zero
+    setStatus(StatusFlags::N, (reg_Acc - data) & 0x80); // if negative MSB = 1
 }
 
 void R6502::CPX()
 {
     uint8_t data = bus.get()->read(addr);
-    setStatus(StatusFlags::C, reg_X >= data);                                 // if positive
-    setStatus((StatusFlags)(StatusFlags::C | StatusFlags::Z), reg_X == data); // if zero
-    setStatus(StatusFlags::N, (reg_X - data) & 0x80);                         // if negative MSB = 1
+    setStatus(StatusFlags::C, reg_X >= data);           // if positive
+    setStatus(StatusFlags::Z, reg_X == data);           // if zero
+    setStatus(StatusFlags::N, (reg_X - data) & 0x80);   // if negative MSB = 1
 }
 
 void R6502::CPY()
 {
     uint8_t data = bus.get()->read(addr);
-    setStatus(StatusFlags::C, reg_Y >= data);                                 // if positive
-    setStatus((StatusFlags)(StatusFlags::C | StatusFlags::Z), reg_Y == data); // if zero
-    setStatus(StatusFlags::N, (reg_Y - data) & 0x80);                         // if negative MSB = 1
+    setStatus(StatusFlags::C, reg_Y >= data);           // if positive
+    setStatus(StatusFlags::Z, reg_Y == data);           // if zero
+    setStatus(StatusFlags::N, (reg_Y - data) & 0x80);   // if negative MSB = 1
 }
 
 void R6502::DEC()

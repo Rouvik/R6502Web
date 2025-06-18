@@ -3,3 +3,6 @@
 
 # Ignore the builds
 bin/
+
+# Ignore the cpuDebug.log file
+cpuDebug.log

@@ -1,8 +1,13 @@
 # R6502
-A simple state machine based emulator for WDC extended 6502 8-bit CPUs
+A simple state machine based emulator for MOS 6502 8-bit CPUs
+
+# Features list:
+- Support for all basic MOS 6502 instructions
+- Support for illegal MOS 6502 instructions (JAM, TSB, ORA, ASL, ...)
+- Improved timing and accurate emulation
+- Decoupled system makes it easier to integrate in other projects
 
 # Todo:
-- The emulator is almost complete (only WDC extended instructions left)
 - Improve the interface and make it easier for users to run programs from it
 
 # Important links:
