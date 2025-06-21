@@ -4,7 +4,6 @@
 
 R6502Mem::R6502Mem(int capacity, int offset)
 {
-    // memory = new uint8_t[capacity]{0};
     std::minstd_rand rand(std::random_device{}());
     memory = new uint8_t[capacity]; // dont zero out ram instead randomise it to replicate cold boot
     
