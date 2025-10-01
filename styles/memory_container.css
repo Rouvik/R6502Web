@@ -1,0 +1,8 @@
+.memory_container {
+    overflow: auto;
+}
+
+.memory_container table input {
+    width: 3em;
+    -moz-appearance: textfield;
+}

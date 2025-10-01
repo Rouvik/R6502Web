@@ -1,8 +1,9 @@
 # Ignore vscode crap
 .vscode/
 
-# Ignore the builds
-bin/
-
 # Ignore the cpuDebug.log file
 cpuDebug.log
+
+# Ignore useless binaries
+asm6/asm6
+tools/hexToBin

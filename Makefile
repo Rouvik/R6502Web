@@ -1,26 +1,33 @@
-.PHONY: all mkdirs clean objBuild
+.PHONY: all mkdirs clean objBuild compileASM6
 
-CXX := g++
+CXX := em++
 
 SRC = ./src
 BUILD = ./bin
 INCLUDE = ./include
 
+ASM6DIR = ./asm6
+
 TARGETS = $(wildcard $(SRC)/*.cpp)
-OUTPUTS = $(patsubst $(SRC)/%.cpp, $(BUILD)/%.o, $(TARGETS))
+OBJECTS = $(patsubst $(SRC)/%.cpp, $(BUILD)/%.o, $(TARGETS))
 
-FLAGS = -Wall -Wextra -I$(INCLUDE)
+CXXFLAGS = -Wall -Wextra -I$(INCLUDE)
 
-# DEBUG = -ggdb
+EMCXXFLAGS = --bind -s EXPORTED_RUNTIME_METHODS='["HEAPU8"]'
 
-all: mkdirs main.cpp $(OUTPUTS)
-	$(CXX) -o $(BUILD)/main.exe main.cpp $(OUTPUTS) $(FLAGS) $(DEBUG)
+# DEBUG = -g4
+
+all: mkdirs r6502Main.cpp compileASM6 $(OBJECTS)
+	$(CXX) $(CXXFLAGS) $(EMCXXFLAGS) $(DEBUG) -o $(BUILD)/r6502.mjs r6502Main.cpp $(OBJECTS)
 
 # Only build the required object files and not the driver executable
-objBuild: mkdirs $(OUTPUTS)
+objBuild: mkdirs $(OBJECTS)
 
 $(BUILD)/%.o: $(SRC)/%.cpp $(INCLUDE)/%.hpp
-	$(CXX) -c -o $@ $< $(FLAGS)
+	$(CXX) -c $(CXXFLAGS) $(DEBUG) -o $@ $<
+
+compileASM6: $(ASM6DIR)/asm6.c
+	cd $(ASM6DIR) && ./compileAsm6.sh
 
 mkdirs:
 	mkdir -p $(BUILD)

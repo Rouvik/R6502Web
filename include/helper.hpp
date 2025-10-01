@@ -4,7 +4,7 @@
 #include <iostream>
 
 // ####################### toggle casserts #######################
-// #define NDEBUG
+#define NDEBUG
 
 #include <cassert>
 
@@ -12,7 +12,7 @@
 // #define LOG_INFO << // Uncomment this line to disable detailed logging
 
 // ####################### toggle project debug features on/off #######################
-#define ENABLE_DEBUG
+// #define ENABLE_DEBUG
 
 #ifdef ENABLE_DEBUG
 

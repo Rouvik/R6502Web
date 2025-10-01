@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web R6502: The Online 6502 assembler + emulator</title>
+    
+    <!-- Styles -->
+     <link rel="stylesheet" href="./styles/memory_container.css">
+</head>
+<body>
+    <div id="editor" style="width: 100vw; height: 30em;">.org $600
+
+lda #50
+ldx #0
+
+loop:
+sta $00, X
+inx
+jmp loop</div>
+    <button id="codeCompileBtn">Compile and Mount ROM</button>
+    <input type="file" id="programInput"> <br>
+    <label for="romStartOffset">ROM Start Offset: <input type="text" id="romStartOffset"></label> <br>
+    <button id="runBtn">Run</button>
+    <button id="stopBtn">Stop</button>
+    <button id="clockBtn">Clock</button>
+    <button id="resetBtn">Reset</button>
+    <button id="irqBtn">IRQ</button>
+    <button id="nmiBtn">NMI</button> <br>
+
+    <textarea id="cpuState" cols="40" rows="10" style="resize: none;" readonly></textarea> <br><br>
+
+    <div id="memory-container"></div>
+</body>
+<script type="module" src="./main.mjs"></script>
+<script src="./lib/ace.min.js"></script>
+</html>

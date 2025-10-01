@@ -192,7 +192,7 @@ private:
     static uint8_t ANE_randomValues[7];
     static std::unique_ptr<R6502Bus> bus;
 
-    static std::ofstream logFile;
+    // static std::ofstream logFile;
 };
 
 #endif // INCLUDED_R6502_HPP

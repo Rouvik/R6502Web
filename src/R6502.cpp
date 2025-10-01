@@ -5,54 +5,8 @@
 R6502::R6502(std::unique_ptr<R6502Bus> &&bus)
 {
     setBus(std::move(bus));
-}
 
-R6502::~R6502()
-{
-    logFile.close();
-}
-
-R6502Bus *R6502::getBus() const
-{
-    return bus.get();
-}
-
-void R6502::setBus(std::unique_ptr<R6502Bus> &&bus)
-{
-    if (bus == nullptr)
-    {
-        ERROR(R6502::setBus, "Bus cannot be null, CPU read writes will fail");
-        return;
-    }
-
-    this->bus = std::move(bus);
-}
-
-std::unique_ptr<R6502Bus> R6502::bus;
-int R6502::total_cycles = 0;
-int R6502::ticks = 0;
-uint32_t R6502::IP = 0;
-uint8_t R6502::reg_Acc = 0;
-uint8_t R6502::reg_X = 0;
-uint8_t R6502::reg_Y = 0;
-uint8_t R6502::reg_Status = 0;
-uint16_t R6502::reg_Stack = 0x1FF;
-uint8_t R6502::instr = 0;
-uint8_t R6502::imm = 0;
-uint16_t R6502::addr = 0;
-bool R6502::accumulator = false;
-bool R6502::indirect = false;
-bool R6502::zeroIndirect = false;
-
-bool R6502::running = true;
-
-std::ofstream R6502::logFile("./cpuDebug.log");
-
-std::minstd_rand R6502::rand(std::random_device{}()); // get a random seed once for the PRNG
-uint8_t R6502::ANE_randomValues[7] = {0x00, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
-
-std::vector<Instruction_t> R6502::Instructions =
-    {
+    Instructions = {
         (Instruction_t){"BRK", R6502::IMP, R6502::BRK, 7},
         (Instruction_t){"ORA", R6502::INX, R6502::ORA, 6},
         (Instruction_t){"JAM", R6502::IMP, R6502::JAM, 0},
@@ -309,6 +263,54 @@ std::vector<Instruction_t> R6502::Instructions =
         (Instruction_t){"SBC", R6502::ABX, R6502::SBC, 4},
         (Instruction_t){"INC", R6502::ABX, R6502::INC, 7},
         (Instruction_t){"ISC", R6502::ABX, R6502::ISC, 7}};
+}
+
+R6502::~R6502()
+{
+    // logFile.close();
+}
+
+R6502Bus *R6502::getBus() const
+{
+    return bus.get();
+}
+
+void R6502::setBus(std::unique_ptr<R6502Bus> &&bus)
+{
+    if (bus == nullptr)
+    {
+        ERROR(R6502::setBus, "Bus cannot be null, CPU read writes will fail");
+        return;
+    }
+
+    this->bus = std::move(bus);
+}
+
+std::unique_ptr<R6502Bus> R6502::bus;
+int R6502::total_cycles = 0;
+int R6502::ticks = 0;
+uint32_t R6502::IP = 0;
+uint8_t R6502::reg_Acc = 0;
+uint8_t R6502::reg_X = 0;
+uint8_t R6502::reg_Y = 0;
+uint8_t R6502::reg_Status = 0;
+uint16_t R6502::reg_Stack = 0x1FF;
+uint8_t R6502::instr = 0;
+uint8_t R6502::imm = 0;
+uint16_t R6502::addr = 0;
+bool R6502::accumulator = false;
+bool R6502::indirect = false;
+bool R6502::zeroIndirect = false;
+
+// instructions vector, initialisition moved to constructor
+std::vector<Instruction_t> R6502::Instructions;
+
+bool R6502::running = true;
+
+// std::ofstream R6502::logFile("./cpuDebug.log");
+
+std::minstd_rand R6502::rand(std::random_device{}()); // get a random seed once for the PRNG
+uint8_t R6502::ANE_randomValues[7] = {0x00, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
 
 uint8_t R6502::setStatus(StatusFlags flag, bool value)
 {
@@ -366,8 +368,11 @@ void R6502::clock()
         throw std::runtime_error("Unknown instruction exception!");
     }
 
-    logFile << std::dec << "Instruction: " << R6502::Instructions[R6502::instr].op << " IP: " << std::hex << R6502::IP << std::dec << '\n';
-    logFile << "CPU STATE:: X: " << static_cast<int>(R6502::reg_X) << " Y: " << static_cast<int>(R6502::reg_Y) << " Acc: " << static_cast<int>(R6502::reg_Acc) << std::hex << " Stack: " << reg_Stack << " Status: " << std::bitset<8>(R6502::reg_Status) << '\n';
+    // logFile << std::dec << "Instruction: " << R6502::Instructions[R6502::instr].op << " IP: " << std::hex << R6502::IP << std::dec << '\n';
+    // logFile << "CPU STATE:: X: " << static_cast<int>(R6502::reg_X) << " Y: " << static_cast<int>(R6502::reg_Y) << " Acc: " << static_cast<int>(R6502::reg_Acc) << std::hex << " Stack: " << reg_Stack << " Status: " << std::bitset<8>(R6502::reg_Status) << '\n';
+    
+    // std::cout << std::dec << "Instruction: " << R6502::Instructions[R6502::instr].op << " IP: " << std::hex << R6502::IP << std::dec << '\n';
+    // std::cout << "CPU STATE:: X: " << static_cast<int>(R6502::reg_X) << " Y: " << static_cast<int>(R6502::reg_Y) << " Acc: " << static_cast<int>(R6502::reg_Acc) << std::hex << " Stack: " << reg_Stack << " Status: " << std::bitset<8>(R6502::reg_Status) << '\n';
 
     IP++; // update Instruction pointer
 
@@ -394,6 +399,7 @@ void R6502::reset()
     accumulator = false;
     indirect = false;
     zeroIndirect = false;
+    running = true;
 }
 
 void R6502::stack_Push(uint8_t data)
