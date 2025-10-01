@@ -1,0 +1,14 @@
+@font-face {
+    font-family: 'Material Symbols Rounded';
+    src: url('/styles/materialSymbols.woff2');
+
+    font-variation-settings:
+    'FILL' 1,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+.materialSymbol {
+    font-family: 'Material Symbols Rounded';
+}

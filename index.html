@@ -6,7 +6,15 @@
     <title>Web R6502: The Online 6502 assembler + emulator</title>
     
     <!-- Styles -->
-     <link rel="stylesheet" href="./styles/memory_container.css">
+    <link rel="stylesheet" href="./styles/memory_container.css">
+
+    <!-- Fonts and Icons -->
+    <link rel="stylesheet" href="./styles/materialSymbols.css">
+    <link rel="stylesheet" href="./styles/redHatText.css">
+
+    <!-- Base Stylesheet -->
+    <link rel="stylesheet" href="./styles/style.css">
+    
 </head>
 <body>
     <div id="editor" style="width: 100vw; height: 30em;">.org $600
@@ -18,19 +26,37 @@ loop:
 sta $00, X
 inx
 jmp loop</div>
-    <button id="codeCompileBtn">Compile and Mount ROM</button>
-    <input type="file" id="programInput"> <br>
-    <label for="romStartOffset">ROM Start Offset: <input type="text" id="romStartOffset"></label> <br>
-    <button id="runBtn">Run</button>
-    <button id="stopBtn">Stop</button>
-    <button id="clockBtn">Clock</button>
-    <button id="resetBtn">Reset</button>
-    <button id="irqBtn">IRQ</button>
-    <button id="nmiBtn">NMI</button> <br>
 
-    <textarea id="cpuState" cols="40" rows="10" style="resize: none;" readonly></textarea> <br><br>
+    <div class="romDiv">
+        <button id="codeCompileBtn">Compile and Mount ROM</button>
+        <input type="file" id="programInput">
+    </div> <br>
 
-    <div id="memory-container"></div>
+    <label for="romStartOffset" class="romStartOffset">ROM Start Offset: <input type="text" id="romStartOffset" value="0x00"></label> <br><br>
+
+    <div class="ctrlBtnContainer">
+        <button id="runBtn" class="materialSymbol ctrlBtn" title="Run the program">&#xe037;</button>
+        <button id="stopBtn" class="materialSymbol ctrlBtn" title="Pause execution">&#xe034;</button>
+        <button id="clockBtn" class="materialSymbol ctrlBtn" title="Step instruction">&#xf6ff;</button>
+        <button id="resetBtn" class="materialSymbol ctrlBtn" title="Reset CPU">&#xe047;</button>
+        <button id="irqBtn" class="ctrlBtn" title="Call Interrupt">IRQ</button>
+        <button id="nmiBtn" class="ctrlBtn" title="Call Non Maskable Interrupt">NMI</button>
+    </div>
+    
+    <fieldset class="cpuState">
+        <legend>CPU Status</legend>
+        <textarea id="cpuState" cols="20" rows="4" style="resize: none;" readonly></textarea> <br><br>
+        <div><label for="ipVal">IP: </label><input type="text" id="ipVal"></div>
+        <div><label for="stackVal">Stack: </label><input type="text" id="stackVal"></div>
+        <div><label for="regXVal">X Register: </label><input type="number" id="regXVal"></div>
+        <div><label for="regYVal">Y Register: </label><input type="number" id="regYVal"></div>
+        <div><label for="regAVal">A Register: </label><input type="number" id="regAVal"></div>
+        <div><label for="statusVal">Status Register: </label><input type="text" id="statusVal"></div>
+    </fieldset>
+
+    <br>
+
+    <div id="memory-container" class="memory_container"></div>
 </body>
 <script type="module" src="./main.mjs"></script>
 <script src="./lib/ace.min.js"></script>
