@@ -7,3 +7,6 @@ cpuDebug.log
 # Ignore useless binaries
 asm6/asm6
 tools/hexToBin
+
+# Ignore local programs
+programs

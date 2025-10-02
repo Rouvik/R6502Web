@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web R6502: The Online 6502 assembler + emulator</title>
+    <title>Web R6502: The Online 6502 emulator</title>
     
     <!-- Styles -->
     <link rel="stylesheet" href="./styles/memory_container.css">
@@ -17,22 +17,52 @@
     
 </head>
 <body>
-    <div id="editor" style="width: 100vw; height: 30em;">.org $600
+    <h1>R6502 Web: Online 6502 Emulator</h1>
+    <div id="editor" style="width: 100vw; height: 30em;">; first 0x600 bytes padding
+.org $00
+db 0
+
+; code starts from 0x600
+.org $600
 
 lda #50
-ldx #0
+ldx 0
 
+; repeatedly fill with zeroes
 loop:
-sta $00, X
+sta $02, X
 inx
-jmp loop</div>
+jmp loop
+
+; Non maskable interrupt
+nmi:
+pha
+lda #32
+sta $00
+pla
+rti
+
+; Basic interrupt
+interrupt:
+pha
+lda #69
+sta $01
+pla
+rti
+
+.org $fffa
+dw nmi
+dw $600
+dw interrupt</div>
 
     <div class="romDiv">
-        <button id="codeCompileBtn">Compile and Mount ROM</button>
-        <input type="file" id="programInput">
+        <button id="codeCompileBtn" title="Compile assembly and build ROM">Compile and Mount ROM</button>
+        <span>OR</span>
+        <input type="file" id="programInput" title="Import ROM from external">
     </div> <br>
 
     <label for="romStartOffset" class="romStartOffset">ROM Start Offset: <input type="text" id="romStartOffset" value="0x00"></label> <br><br>
+    <label for="clockInterval" class="romStartOffset">Clock Interval (in ms): <input type="text" id="clockInterval" value="50" min="0"></label> <br><br>
 
     <div class="ctrlBtnContainer">
         <button id="runBtn" class="materialSymbol ctrlBtn" title="Run the program">&#xe037;</button>
@@ -51,13 +81,17 @@ jmp loop</div>
         <div><label for="regXVal">X Register: </label><input type="number" id="regXVal"></div>
         <div><label for="regYVal">Y Register: </label><input type="number" id="regYVal"></div>
         <div><label for="regAVal">A Register: </label><input type="number" id="regAVal"></div>
-        <div><label for="statusVal">Status Register: </label><input type="text" id="statusVal"></div>
+        <div><label for="statusVal">Status Register (<b>NV1B DIZC</b>): </label><input type="text" id="statusVal"></div>
     </fieldset>
 
     <br>
 
     <div id="memory-container" class="memory_container"></div>
+    <br><br>
+
+    <footer>Created by <b>Rouvik Maji</b> with ❤️ | Emulator by Rouvik Maji <a href="https://github.com/Rouvik/R6502">R6502</a> | Assembler is <a href="https://github.com/parasyte/asm6">asm6 by parasyte</a></footer>
 </body>
 <script type="module" src="./main.mjs"></script>
+<script src="./Toastify.min.js"></script>
 <script src="./lib/ace.min.js"></script>
 </html>

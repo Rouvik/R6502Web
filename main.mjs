@@ -12,6 +12,8 @@ const memContainer = new MemoryContainer(document.getElementById("memory-contain
 const cpuState = document.getElementById("cpuState");
 const programInput = document.getElementById("programInput");
 const romStartOffset = document.getElementById("romStartOffset");
+const toastCtx = new ToastContext("right");
+const clockInterval = document.getElementById("clockInterval");
 
 const cpuStateReg = {
     ip: document.getElementById("ipVal"),
@@ -34,19 +36,31 @@ programInput.addEventListener("input", () => {
         const memPtr = r6502Mod.getMemoryPtr(r6502CPUPtr);
         const heapArr = r6502Mod.HEAPU8.subarray(memPtr, memPtr + 0x10000);
 
-        setROMToMemory(fr.result, parseInt(romStartOffset.value, 16));
+        if(!setROMToMemory(fr.result, parseInt(romStartOffset.value, 16))) return;
         r6502Mod.R6502.IP = heapArr[0xfffc] | (heapArr[0xfffd] << 8);
         printCPUState();
+
+        toastCtx.displayMessageToast("ROM loaded successfully!", 4);
+        toastCtx.displayMessageToast("Make sure IP and offsets are correct!", 4);
     }
 });
 
 function setROMToMemory(rom, offset = 0) {
     const memPtr = r6502Mod.getMemoryPtr(r6502CPUPtr);
     const heapArr = r6502Mod.HEAPU8.subarray(memPtr, memPtr + 0x10000);
-    heapArr.set(new Uint8Array(rom), offset);
+    try {
+        heapArr.set(new Uint8Array(rom), offset);
+    } catch(error)
+    {
+        toastCtx.displayMessageToast(`Failed to write buffer: ${error}\nOffset to write to: ${offset} and size of source: ${rom.length} and destination is only 0xFFFF bytes long`, 10);
+        console.error(error);
+        return false;
+    }
 
     memContainer.buffer = heapArr;
     memContainer.refreshArrayView();
+
+    return true;
 }
 
 // CPU single step button handler
@@ -66,6 +80,14 @@ document.getElementById("nmiBtn").addEventListener("click", () => {
     r6502Mod.callNMIFromJS(r6502CPUPtr);
 });
 
+function stopIntervalLoop() {
+    if (!!intervalIndex) {
+        clearInterval(intervalIndex);
+    }
+
+    intervalIndex = null;
+}
+
 // CPU Reset button handler
 document.getElementById("resetBtn").addEventListener("click", () => {
     const memPtr = r6502Mod.getMemoryPtr(r6502CPUPtr);
@@ -75,6 +97,7 @@ document.getElementById("resetBtn").addEventListener("click", () => {
     r6502Mod.R6502.IP = heapArr[0xfffc] | (heapArr[0xfffd] << 8);
     r6502Mod.R6502.running = true;
     printCPUState();
+    stopIntervalLoop();
 });
 
 // CPU run button handler
@@ -87,17 +110,15 @@ document.getElementById("runBtn").addEventListener("click", () => {
         r6502Mod.clockCPUFromJS(r6502CPUPtr);
         memContainer.refreshArrayView();
         printCPUState();
-    }, 50);
+
+        if (!r6502Mod.R6502.running) {
+            stopIntervalLoop();
+        }
+    }, +clockInterval.value);
 });
 
 // CPU Stop button handler
-document.getElementById("stopBtn").addEventListener("click", () => {
-    if (!!intervalIndex) {
-        clearInterval(intervalIndex);
-    }
-
-    intervalIndex = null;
-});
+document.getElementById("stopBtn").addEventListener("click", stopIntervalLoop);
 
 function printCPUState() {
     cpuState.value = 
@@ -140,20 +161,24 @@ cpuStateReg.status.addEventListener("input", () => {
 });
 
 // assemble and copy code to buffer button handler
-document.getElementById("codeCompileBtn").addEventListener("click", () => {
+document.getElementById("codeCompileBtn").addEventListener("click", async () => {
     asm6Mod.FS.writeFile("prog.c", editor.getValue());
     if(asm6Mod.callMain(["prog.c", "prog.bin"]))
     {
-        alert("Error failed to compile assembly, please check console.logs for further info on errors, open console with Ctrl + Shift + I");
+        toastCtx.displayMessageToast("Error failed to compile assembly, please check console.logs for further info on errors, open console with Ctrl + Shift + I", 10);
+        asm6Mod = await asm6Module();   // refresh the module to reset error flags
         return;
     }
 
     const memPtr = r6502Mod.getMemoryPtr(r6502CPUPtr);
     const heapArr = r6502Mod.HEAPU8.subarray(memPtr, memPtr + 0x10000);
 
-    setROMToMemory(asm6Mod.FS.readFile("prog.bin"), parseInt(romStartOffset.value, 16));
+    if(!setROMToMemory(asm6Mod.FS.readFile("prog.bin"), parseInt(romStartOffset.value, 16))) return;
     r6502Mod.R6502.IP = heapArr[0xfffc] | (heapArr[0xfffd] << 8);
     printCPUState();
+
+    toastCtx.displayMessageToast("Successfully assembled and loaded ROM!", 4);
+    toastCtx.displayMessageToast("Make sure IP and offsets are correct!", 4);
 });
 
 // main driver code

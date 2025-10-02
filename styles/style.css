@@ -17,6 +17,12 @@ body {
     background-color: rgb(95, 1, 45);
 }
 
+.romDiv span {
+    padding: 15px 0px 15px 0px;
+    margin: 0px 5px 0px 5px;
+    font-weight: bolder;
+}
+
 button {
     background-color: black;
     border: 0px;
@@ -143,4 +149,28 @@ button:hover {
     color: white;
     font-family: "Red Hat Text";
     font-size: 1.1rem;
+}
+
+footer {
+    background-color: white;
+    color: black;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+a {
+    text-decoration: none;
+    color: rgb(255, 25, 140);
+    font-weight: bolder;
+
+    transition: 500ms;
+}
+
+a:hover {
+    color: rgb(171, 25, 255);
+    border-bottom: 2px dashed rgb(255, 25, 140);
+}
+
+a::before {
+    content: '🔗';
 }
