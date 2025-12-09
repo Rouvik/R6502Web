@@ -1,6 +1,6 @@
-import r6502Module from "./bin/r6502.mjs";
 import asm6Module from "./bin/asm6.mjs";
-import MemoryContainer from "./lib/memory_container.mjs";
+import r6502Module from "./bin/r6502.mjs";
+import MemoryContainer, { MemoryCanvas } from "./lib/memory_container.mjs";
 
 // global state
 let r6502Mod = null;
@@ -8,7 +8,11 @@ let r6502CPUPtr = null;
 let asm6Mod = null;
 let intervalIndex = null;
 let editor = null;
+
+const memCanvas = new MemoryCanvas(document.getElementById("screen"), document.getElementById("offsetInput"), document.getElementById("dimX"), document.getElementById("dimY"));
 const memContainer = new MemoryContainer(document.getElementById("memory-container"));
+memCanvas.attachMemContainer(memContainer);
+
 const cpuState = document.getElementById("cpuState");
 const programInput = document.getElementById("programInput");
 const romStartOffset = document.getElementById("romStartOffset");
@@ -36,7 +40,7 @@ programInput.addEventListener("input", () => {
         const memPtr = r6502Mod.getMemoryPtr(r6502CPUPtr);
         const heapArr = r6502Mod.HEAPU8.subarray(memPtr, memPtr + 0x10000);
 
-        if(!setROMToMemory(fr.result, parseInt(romStartOffset.value, 16))) return;
+        if (!setROMToMemory(fr.result, parseInt(romStartOffset.value, 16))) return;
         r6502Mod.R6502.IP = heapArr[0xfffc] | (heapArr[0xfffd] << 8);
         printCPUState();
 
@@ -50,8 +54,7 @@ function setROMToMemory(rom, offset = 0) {
     const heapArr = r6502Mod.HEAPU8.subarray(memPtr, memPtr + 0x10000);
     try {
         heapArr.set(new Uint8Array(rom), offset);
-    } catch(error)
-    {
+    } catch (error) {
         toastCtx.displayMessageToast(`Failed to write buffer: ${error}\nOffset to write to: ${offset} and size of source: ${rom.length} and destination is only 0xFFFF bytes long`, 10);
         console.error(error);
         return false;
@@ -108,7 +111,7 @@ document.getElementById("runBtn").addEventListener("click", () => {
 
     intervalIndex = setInterval(() => {
         r6502Mod.clockCPUFromJS(r6502CPUPtr);
-        memContainer.refreshArrayView();
+        // memContainer.refreshArrayView();
         printCPUState();
 
         if (!r6502Mod.R6502.running) {
@@ -121,8 +124,8 @@ document.getElementById("runBtn").addEventListener("click", () => {
 document.getElementById("stopBtn").addEventListener("click", stopIntervalLoop);
 
 function printCPUState() {
-    cpuState.value = 
-`Total Cycles: ${r6502Mod.R6502.total_cycles}
+    cpuState.value =
+        `Total Cycles: ${r6502Mod.R6502.total_cycles}
 Ticks: ${r6502Mod.R6502.ticks}
 Instruction: ${r6502Mod.getInstructionName(r6502Mod.R6502.instr)}
 Running: ${r6502Mod.R6502.running}`;
@@ -163,8 +166,7 @@ cpuStateReg.status.addEventListener("input", () => {
 // assemble and copy code to buffer button handler
 document.getElementById("codeCompileBtn").addEventListener("click", async () => {
     asm6Mod.FS.writeFile("prog.c", editor.getValue());
-    if(asm6Mod.callMain(["prog.c", "prog.bin"]))
-    {
+    if (asm6Mod.callMain(["prog.c", "prog.bin"])) {
         toastCtx.displayMessageToast("Error failed to compile assembly, please check console.logs for further info on errors, open console with Ctrl + Shift + I", 10);
         asm6Mod = await asm6Module();   // refresh the module to reset error flags
         return;
@@ -173,7 +175,7 @@ document.getElementById("codeCompileBtn").addEventListener("click", async () => 
     const memPtr = r6502Mod.getMemoryPtr(r6502CPUPtr);
     const heapArr = r6502Mod.HEAPU8.subarray(memPtr, memPtr + 0x10000);
 
-    if(!setROMToMemory(asm6Mod.FS.readFile("prog.bin"), parseInt(romStartOffset.value, 16))) return;
+    if (!setROMToMemory(asm6Mod.FS.readFile("prog.bin"), parseInt(romStartOffset.value, 16))) return;
     r6502Mod.R6502.IP = heapArr[0xfffc] | (heapArr[0xfffd] << 8);
     printCPUState();
 
@@ -186,7 +188,9 @@ async function main() {
     r6502Mod = await r6502Module();
     r6502CPUPtr = r6502Mod.initialiseCPU();
     asm6Mod = await asm6Module();
-        
+
+    r6502Mod.memContainer = memContainer;
+
     editor = ace.edit("editor");
     editor.setTheme("ace/theme/dracula");
     editor.session.setMode("ace/mode/assembly_6502");

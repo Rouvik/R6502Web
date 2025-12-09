@@ -25,30 +25,40 @@ db 0
 ; code starts from 0x600
 .org $600
 
-lda #50
-ldx 0
+lda #0
+ldx #0
 
-; repeatedly fill with zeroes
+; fill with increasing values of A
 loop:
-sta $02, X
-inx
-jmp loop
+    sta $00, X
+    inx
+    adc #1  ; add 1 to A (increment)
+    jmp loop
 
 ; Non maskable interrupt
 nmi:
-pha
-lda #32
-sta $00
-pla
-rti
+    lda #0
+    nmi_loop:
+        sta $00, X
+        dex
+        beq nmp_loop_exit
+        jmp nmi_loop
+
+    nmp_loop_exit:
+    rti
 
 ; Basic interrupt
 interrupt:
-pha
-lda #69
-sta $01
-pla
-rti
+    lda #9
+    ldx #$ff
+    irq_loop:
+        sta $00, X
+        dex
+        beq irq_loop_end
+        jmp irq_loop
+    
+    irq_loop_end:
+    rti
 
 .org $fffa
 dw nmi
@@ -87,6 +97,15 @@ dw interrupt</div>
     <br>
 
     <div id="memory-container" class="memory_container"></div>
+    <br><br>
+
+    <details open>
+        <summary>Canvas</summary>
+        <canvas id="screen">Oops! Canvas is not available in your browser</canvas> <br>
+        <label for="offsetInput" class="romStartOffset">Offset: <input type="text" id="offsetInput"></label> <br><br>
+        <label for="dimY" class="romStartOffset">Cols: <input type="number" id="dimY"></label> <br><br>
+        <label for="dimX" class="romStartOffset">Rows: <input type="number" id="dimX"></label><br>
+    </details>
     <br><br>
 
     <footer>Created by <b>Rouvik Maji</b> with ❤️ | Emulator by Rouvik Maji <a href="https://github.com/Rouvik/R6502">R6502</a> | Assembler is <a href="https://github.com/parasyte/asm6">asm6 by parasyte</a></footer>

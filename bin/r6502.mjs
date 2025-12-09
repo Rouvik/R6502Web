@@ -3278,6 +3278,7 @@ unexportedSymbols.forEach(unexportedRuntimeSymbol);
 function checkIncomingModuleAPI() {
   ignoredModuleProp('fetchSettings');
 }
+function notifyMemoryUpdate(address,data) { Module.memContainer.updateSpecificViewElement(address, data); }
 
 // Imports from the Wasm binary.
 var ___getTypeName = makeInvalidEarlyAccess('___getTypeName');
@@ -3344,6 +3345,8 @@ var wasmImports = {
   fd_seek: _fd_seek,
   /** @export */
   fd_write: _fd_write,
+  /** @export */
+  notifyMemoryUpdate,
   /** @export */
   random_get: _random_get
 };
