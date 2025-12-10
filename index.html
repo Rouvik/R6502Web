@@ -108,6 +108,105 @@ dw interrupt</div>
     </details>
     <br><br>
 
+    <h1>Help:</h1>
+    <details class="docs">
+        <summary>Expand</summary>
+        <h2>Basic Usage:</h2>
+        <h3>Mounting ROM</h3>
+        <p>
+            6502 compatible ROMs can be introduced in the memory in 3 different ways
+            <ul>
+                <li>Selecting the ROM from the file input and inserting it</li>
+                <li>Writing the assembly in the web editor and compiling it with the compile button</li>
+                <li>Directly writing raw bytes in the memory viewer (not recommended)</li>
+            </ul>
+        </p>
+        <h3>How does the emulator work?</h3>
+        <p>
+            After mounting the ROM you can press the <span class="materialSymbol">&#xe037;</span> button to start the emulation. <br>
+            <b><font color="lime">The emulator first finds the reset vector by looking at the address at (0xfffb - 0xfffc) <br>
+            and starts emulating from there. You can also manually set the IP in the CPU Status section but it is not recommended.</font></b>
+        </p>
+        <h3>Interrupt and Reset Vectors</h3>
+        <p>
+            R6502 is capable to identify and correctly deal with Non Maskable, Reset and Interrupt vectors from their correct locations and work with them. <br>
+            The locations are as follows:
+            <ul>
+                <li>Non Maskable Interrupt Vector = [0xfffa, 0xfffb]</li>
+                <li>Reset Vector = [0xfffc, 0xfffd]</li>
+                <li>Interrupt Vector = [0xfffe, 0xffff]</li>
+            </ul>
+            <b><font color="yellow">Care should be taken that these vectors are properly initialised when loading the ROM.</font></b>
+        </p>
+        <h3>Controls</h3>
+
+        <h4>Rom Start Offset</h4>
+        <p>
+            Used to set the offset at which to load the ROM, if the ROM is too big and/or the offset makes it go out of bounds
+            of <i>0x0000 - 0xffff</i> memory, loading will fail.
+        </p>
+
+        <h4>Clock Interval (in ms)</h4>
+        <p>
+            Used to control clock rate, the lower it is the faster time delay between ticks in ms.
+            Zero (0) will give the fastest tick rate (browser / machine dependent).
+        </p>
+
+        <h4>Button (<span class="materialSymbol">&#xe037;</span>)</h4>
+        <p>
+            Start CPU cycling.
+        </p>
+
+        <h4>Button (<span class="materialSymbol">&#xe034;</span>)</h4>
+        <p>
+            Pause CPU cycling. (KEEPS THE CPU STATE INTACT AND CAN BE RESUMED WITH <span class="materialSymbol">&#xe037;</span>)
+        </p>
+
+        <h4>Button (<span class="materialSymbol">&#xf6ff;</span>)</h4>
+        <p>
+            Single step CPU cycles.
+        </p>
+
+        <h4>Button (<span class="materialSymbol">&#xe047;</span>)</h4>
+        <p>
+            Reset CPU state.
+        </p>
+
+        <h4>Button (IRQ)</h4>
+        <p>
+            Trigger an interrupt (obviously respecting the interrupt mask).
+        </p>
+
+        <h4>Button (NMI)</h4>
+        <p>
+            Trigger an non maskable interrupt.
+        </p>
+
+        <h4>CPU Status</h4>
+        <p>
+            Shows all the current CPU status and are modifiable during runtime, extremely handy for debugging. <br><br>
+            <b>Status register bits: (NV1B DIZC)</b>
+            <ul>
+                <li>N - NEG</li>
+                <li>V - OVERFLOW</li>
+                <li>1 - UNUSED</li>
+                <li>B - BRK</li>
+                <li>D - DECIMAL(unimplemented)</li>
+                <li>I - INTERRUPT_DISABLE</li>
+                <li>Z - ZERO</li>
+                <li>C - CARRY</li>
+            </ul>
+        </p>
+        <h4>Canvas</h4>
+        <p>
+            Canvas allows you to get graphics from a section of memory where each location represents a pixel on the canvas <b>Row Major Order</b>. <br>
+            The color scheme follows <a href="https://en.wikipedia.org/wiki/File:Xterm_256color_chart.svg">XTERM-256</a> utilising the entire 256 color possibilities from the palette. <br>
+            The <b>offset, rows and cols</b> options allow modifying the canvas bounds to th programmers wish to make graphics easier and simpler to implement.
+        </p>
+    </details>
+
+    <br><br>
+
     <footer>Created by <b>Rouvik Maji</b> with ❤️ | Emulator by Rouvik Maji <a href="https://github.com/Rouvik/R6502">R6502</a> | Assembler is <a href="https://github.com/parasyte/asm6">asm6 by parasyte</a></footer>
 </body>
 <script type="module" src="./main.mjs"></script>

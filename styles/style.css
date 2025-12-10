@@ -174,3 +174,27 @@ a:hover {
 a::before {
     content: '🔗';
 }
+
+/* Documentation Styling */
+
+.docs {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.docs h2, .docs h3, .docs h4 {
+    text-decoration: underline;
+}
+
+.docs h2::before {
+    content: "# ";
+}
+
+.docs h3::before {
+    content: "## ";
+}
+
+.docs h4::before {
+    content: "### ";
+}

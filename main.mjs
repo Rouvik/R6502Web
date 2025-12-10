@@ -2,7 +2,7 @@ import asm6Module from "./bin/asm6.mjs";
 import r6502Module from "./bin/r6502.mjs";
 import MemoryContainer, { MemoryCanvas } from "./lib/memory_container.mjs";
 
-// global state
+// -------------------- global state -------------------- 
 let r6502Mod = null;
 let r6502CPUPtr = null;
 let asm6Mod = null;
