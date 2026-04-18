@@ -1,0 +1,6 @@
+@font-face {
+  font-family: 'mat-sym-pause';
+  font-style: normal;
+  font-weight: 400;
+  src: url(./pause.ttf) format('truetype');
+}
