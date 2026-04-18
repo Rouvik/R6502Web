@@ -10,3 +10,6 @@ tools/hexToBin
 
 # Ignore local programs
 programs
+
+# Ignore bin except .wasm
+bin/*.o
